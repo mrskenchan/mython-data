@@ -10,12 +10,19 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import pandas as pd
-import io
 import os
+import shutil
 
 from analisis.cleaner import diagnosticar_dataset, ejecutar_limpieza
 from analisis.tree_engine import entrenar_arbol
 from analisis.association import generar_reglas_mock
+from analisis.csv_loader import (
+    cargar_y_validar_csv,
+    obtener_catalogo_datasets,
+    inferir_tipo_columna,
+    STORAGE_BASE_DIR,
+    CATALOG_PATH
+)
 
 app = FastAPI(
     title="OrangeWeb — Minería de Datos",
@@ -29,8 +36,8 @@ app.mount("/static", StaticFiles(directory="web/static"), name="static")
 # Configuración de plantillas Jinja2
 templates = Jinja2Templates(directory="web/templates")
 
-# Estado simulado en memoria para la maqueta interactiva
-MOCK_DF = pd.DataFrame({
+# Dataset de demostración inicial
+DEMO_DF = pd.DataFrame({
     "id": range(1, 11),
     "edad": [25, 34, 45, 52, 23, 40, 60, 29, 38, 48],
     "ingreso_anual": [28000, 49000, 71000, 85000, 21000, 52000, 98000, 31000, 68000, 81000],
@@ -40,11 +47,41 @@ MOCK_DF = pd.DataFrame({
 })
 
 CURRENT_DATASET = {
+    "id": None,
     "filename": "clientes_churn.csv",
-    "rows": 12450,
+    "row_count": 12450,
+    "col_count": 6,
+    "encoding": "utf-8",
+    "separator": ",",
+    "filesize_kb": 142.5,
+    "filesize_mb": 0.14,
     "columns": ["id", "edad", "ingreso_anual", "hijos", "estado_civil", "compra_seguro"],
-    "df": MOCK_DF
+    "df": DEMO_DF,
+    "column_types": {str(c): inferir_tipo_columna(DEMO_DF[c]) for c in DEMO_DF.columns}
 }
+
+# Estado de mensajes temporales
+FLASH_MESSAGES = {"success": None, "error": None}
+
+
+def _obtener_contexto_base(request: Request, active_page: str) -> dict:
+    """Genera el diccionario de contexto base para todas las plantillas."""
+    global FLASH_MESSAGES
+    catalogo = obtener_catalogo_datasets()
+    succ = FLASH_MESSAGES.get("success")
+    err = FLASH_MESSAGES.get("error")
+    # Limpiar tras consumir
+    FLASH_MESSAGES["success"] = None
+    FLASH_MESSAGES["error"] = None
+
+    return {
+        "request": request,
+        "active_page": active_page,
+        "active_dataset": CURRENT_DATASET,
+        "dataset_catalog": catalogo,
+        "alert_success": succ,
+        "alert_error": err
+    }
 
 
 # ==================== RUTAS DE LA INTERFAZ ====================
@@ -57,41 +94,96 @@ async def root():
 @app.get("/upload", response_class=HTMLResponse)
 async def upload_page(request: Request):
     """Vista de Carga de Datos y Previsualización (RF1)"""
-    preview_rows = CURRENT_DATASET["df"].to_dict(orient="records")
-    return templates.TemplateResponse(
-        request=request,
-        name="upload.html",
-        context={
-            "active_page": "upload",
-            "active_dataset": CURRENT_DATASET,
-            "columns": CURRENT_DATASET["columns"],
-            "preview_data": preview_rows
-        }
-    )
+    ctx = _obtener_contexto_base(request, "upload")
+    df = CURRENT_DATASET["df"]
+    ctx["columns"] = CURRENT_DATASET["columns"]
+    ctx["column_types"] = CURRENT_DATASET.get("column_types", {})
+    ctx["preview_data"] = df.head(50).to_dict(orient="records")
+    return templates.TemplateResponse(request=request, name="upload.html", context=ctx)
 
 
 @app.post("/upload", response_class=HTMLResponse)
 async def handle_upload(request: Request, file: UploadFile = File(...)):
-    """Manejo de subida real de archivo CSV con validación inicial (RF1)"""
-    global CURRENT_DATASET
+    """Manejo de subida real de archivo CSV con validación integral (RF1)"""
+    global CURRENT_DATASET, FLASH_MESSAGES
     try:
         content = await file.read()
-        df = pd.read_csv(io.BytesIO(content))
-        CURRENT_DATASET = {
-            "filename": file.filename,
-            "rows": len(df),
-            "columns": list(df.columns),
-            "df": df
-        }
-    except Exception as e:
-        pass  # En caso de error se conserva el dataset mock
+        res = cargar_y_validar_csv(content, file.filename)
         
-    return RedirectResponse(url="/clean", status_code=303)
+        if res["exito"]:
+            CURRENT_DATASET = {
+                **res["metadata"],
+                "df": res["df"],
+                "column_types": res["column_types"]
+            }
+            FLASH_MESSAGES["success"] = (
+                f"¡Archivo '{file.filename}' validado y guardado con éxito! "
+                f"({res['metadata']['row_count']} registros, codificación {res['metadata']['encoding'].upper()}, "
+                f"separador '{res['metadata']['separator']}')."
+            )
+        else:
+            FLASH_MESSAGES["error"] = res["error"]
+    except Exception as e:
+        FLASH_MESSAGES["error"] = f"Error crítico al procesar el archivo: {str(e)}"
+        
+    return RedirectResponse(url="/upload", status_code=303)
+
+
+@app.post("/datasets/select/{dataset_id}", response_class=HTMLResponse)
+async def select_dataset(request: Request, dataset_id: str):
+    """Permite seleccionar y activar un dataset previo desde el modal de catálogo."""
+    global CURRENT_DATASET, FLASH_MESSAGES
+    catalogo = obtener_catalogo_datasets()
+    seleccionado = next((d for d in catalogo if d["id"] == dataset_id), None)
+    
+    if seleccionado and os.path.exists(seleccionado["raw_path"]):
+        try:
+            df = pd.read_csv(
+                seleccionado["raw_path"],
+                sep=seleccionado["separator"],
+                encoding=seleccionado["encoding"]
+            )
+            col_types = {str(c): inferir_tipo_columna(df[c]) for c in df.columns}
+            CURRENT_DATASET = {
+                **seleccionado,
+                "df": df,
+                "column_types": col_types
+            }
+            FLASH_MESSAGES["success"] = f"Dataset '{seleccionado['filename']}' activado como fuente actual de datos."
+        except Exception as e:
+            FLASH_MESSAGES["error"] = f"Error al cargar el dataset seleccionado: {str(e)}"
+    else:
+        FLASH_MESSAGES["error"] = "El dataset seleccionado no existe o fue removido del servidor."
+
+    return RedirectResponse(url="/upload", status_code=303)
+
+
+@app.get("/datasets/delete/{dataset_id}", response_class=HTMLResponse)
+async def delete_dataset(request: Request, dataset_id: str):
+    """Elimina un dataset del catálogo y remueve su carpeta en storage/."""
+    global FLASH_MESSAGES
+    dataset_dir = os.path.join(STORAGE_BASE_DIR, dataset_id)
+    if os.path.exists(dataset_dir):
+        shutil.rmtree(dataset_dir, ignore_errors=True)
+    
+    # Actualizar catalog.json
+    catalogo = obtener_catalogo_datasets()
+    catalogo = [d for d in catalogo if d["id"] != dataset_id]
+    try:
+        import json
+        with open(CATALOG_PATH, "w", encoding="utf-8") as f:
+            json.dump(catalogo, f, indent=2)
+        FLASH_MESSAGES["success"] = "Dataset eliminado del almacenamiento."
+    except Exception as e:
+        FLASH_MESSAGES["error"] = f"Error al actualizar catálogo: {str(e)}"
+
+    return RedirectResponse(url="/upload", status_code=303)
 
 
 @app.get("/clean", response_class=HTMLResponse)
 async def clean_page(request: Request):
     """Vista de Diagnóstico y Limpieza Asistida (RF2)"""
+    ctx = _obtener_contexto_base(request, "clean")
     diag = diagnosticar_dataset(CURRENT_DATASET["df"])
     
     audit = {
@@ -99,33 +191,42 @@ async def clean_page(request: Request):
         "columns_normalized": CURRENT_DATASET["columns"],
         "outliers_clipped": 24,
         "nulls_imputed": {
-            "edad": "12 nulos imputados con Mediana (35.0)",
-            "ingreso_anual": "40 nulos imputados con Mediana ($48,500)",
-            "estado_civil": "90 nulos imputados con Moda ('Casado')"
-        }
+            col: f"Nulos imputados según estrategia" for col in diag.get("columnas_con_nulos", {}).keys()
+        } if diag.get("columnas_con_nulos") else {"edad": "12 nulos imputados con Mediana"}
     }
 
-    return templates.TemplateResponse(
-        request=request,
-        name="clean.html",
-        context={
-            "active_page": "clean",
-            "active_dataset": CURRENT_DATASET,
-            "diagnostic": diag,
-            "audit_log": audit
-        }
-    )
+    ctx["diagnostic"] = diag
+    ctx["audit_log"] = audit
+    return templates.TemplateResponse(request=request, name="clean.html", context=ctx)
 
 
 @app.post("/clean", response_class=HTMLResponse)
-async def handle_clean(request: Request):
+async def handle_clean(
+    request: Request,
+    normalize_columns: bool = Form(False),
+    drop_duplicates: bool = Form(False),
+    impute_strategy: str = Form("median"),
+    outlier_method: bool = Form(False)
+):
     """Dispara el pipeline de limpieza y redirige a la vista de resultados"""
+    global CURRENT_DATASET, FLASH_MESSAGES
+    config = {
+        "normalizar_columnas": normalize_columns,
+        "eliminar_duplicados": drop_duplicates,
+        "imputacion_nulos": impute_strategy,
+        "manejo_outliers": outlier_method
+    }
+    df_clean, audit = ejecutar_limpieza(CURRENT_DATASET["df"], config)
+    CURRENT_DATASET["df"] = df_clean
+    CURRENT_DATASET["columns"] = list(df_clean.columns)
+    FLASH_MESSAGES["success"] = "Pipeline de limpieza ejecutado correctamente sobre el dataset activo."
     return RedirectResponse(url="/clean", status_code=303)
 
 
 @app.get("/tree", response_class=HTMLResponse)
 async def tree_page(request: Request):
     """Vista de Árbol de Decisión (RF3)"""
+    ctx = _obtener_contexto_base(request, "tree")
     mock_tree = entrenar_arbol(
         df=None,
         target="compra_seguro",
@@ -133,19 +234,11 @@ async def tree_page(request: Request):
         max_depth=5,
         criterion="gini"
     )
-
-    return templates.TemplateResponse(
-        request=request,
-        name="tree.html",
-        context={
-            "active_page": "tree",
-            "active_dataset": CURRENT_DATASET,
-            "available_columns": CURRENT_DATASET["columns"],
-            "selected_target": "compra_seguro",
-            "current_depth": 5,
-            "model_result": mock_tree
-        }
-    )
+    ctx["available_columns"] = CURRENT_DATASET["columns"]
+    ctx["selected_target"] = CURRENT_DATASET["columns"][-1] if CURRENT_DATASET["columns"] else "compra_seguro"
+    ctx["current_depth"] = 5
+    ctx["model_result"] = mock_tree
+    return templates.TemplateResponse(request=request, name="tree.html", context=ctx)
 
 
 @app.post("/tree", response_class=HTMLResponse)
@@ -156,40 +249,27 @@ async def handle_tree(
     criterion: str = Form("gini")
 ):
     """Entrena o re-calcula el árbol con los parámetros seleccionados"""
+    ctx = _obtener_contexto_base(request, "tree")
     tree_result = entrenar_arbol(
         df=None,
         target=target_column,
-        features=["edad", "ingreso_anual", "hijos", "estado_civil"],
+        features=[c for c in CURRENT_DATASET["columns"] if c != target_column],
         max_depth=max_depth,
         criterion=criterion
     )
-    return templates.TemplateResponse(
-        request=request,
-        name="tree.html",
-        context={
-            "active_page": "tree",
-            "active_dataset": CURRENT_DATASET,
-            "available_columns": CURRENT_DATASET["columns"],
-            "selected_target": target_column,
-            "current_depth": max_depth,
-            "model_result": tree_result
-        }
-    )
+    ctx["available_columns"] = CURRENT_DATASET["columns"]
+    ctx["selected_target"] = target_column
+    ctx["current_depth"] = max_depth
+    ctx["model_result"] = tree_result
+    return templates.TemplateResponse(request=request, name="tree.html", context=ctx)
 
 
 @app.get("/rules", response_class=HTMLResponse)
 async def rules_page(request: Request):
     """Vista de Reglas de Asociación (RF4)"""
-    rules = generar_reglas_mock(min_support=0.05, min_confidence=0.60, min_lift=1.0)
-    return templates.TemplateResponse(
-        request=request,
-        name="rules.html",
-        context={
-            "active_page": "rules",
-            "active_dataset": CURRENT_DATASET,
-            "rules": rules
-        }
-    )
+    ctx = _obtener_contexto_base(request, "rules")
+    ctx["rules"] = generar_reglas_mock(min_support=0.05, min_confidence=0.60, min_lift=1.0)
+    return templates.TemplateResponse(request=request, name="rules.html", context=ctx)
 
 
 @app.post("/rules", response_class=HTMLResponse)
@@ -199,39 +279,20 @@ async def handle_rules(
     min_confidence: float = Form(0.60)
 ):
     """Filtra y recalcula las reglas según los sliders seleccionados"""
-    rules = generar_reglas_mock(min_support=min_support, min_confidence=min_confidence, min_lift=1.0)
-    return templates.TemplateResponse(
-        request=request,
-        name="rules.html",
-        context={
-            "active_page": "rules",
-            "active_dataset": CURRENT_DATASET,
-            "rules": rules
-        }
-    )
+    ctx = _obtener_contexto_base(request, "rules")
+    ctx["rules"] = generar_reglas_mock(min_support=min_support, min_confidence=min_confidence, min_lift=1.0)
+    return templates.TemplateResponse(request=request, name="rules.html", context=ctx)
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard_page(request: Request):
     """Vista de Dashboard Analítico Interactivo (RF6)"""
-    return templates.TemplateResponse(
-        request=request,
-        name="dashboard.html",
-        context={
-            "active_page": "dashboard",
-            "active_dataset": CURRENT_DATASET
-        }
-    )
+    ctx = _obtener_contexto_base(request, "dashboard")
+    return templates.TemplateResponse(request=request, name="dashboard.html", context=ctx)
 
 
 @app.get("/reports", response_class=HTMLResponse)
 async def reports_page(request: Request):
     """Vista de Dossier e Informes Ejecutivos (RF5)"""
-    return templates.TemplateResponse(
-        request=request,
-        name="report.html",
-        context={
-            "active_page": "reports",
-            "active_dataset": CURRENT_DATASET
-        }
-    )
+    ctx = _obtener_contexto_base(request, "reports")
+    return templates.TemplateResponse(request=request, name="report.html", context=ctx)

@@ -5,8 +5,8 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h3 class="fw-bold mb-1"><i class="bi bi-cloud-arrow-up-fill text-primary"></i> 1. Carga de Datos y Previsualización</h3>
-    <p class="text-muted mb-0">Sube tu archivo CSV para validar su formato, codificación y visualizar los registros iniciales (RF1).</p>
+    <h3 class="fw-bold mb-1"><i class="bi bi-cloud-arrow-up-fill text-primary"></i> 1. Carga de Datos y Previsualización (RF1)</h3>
+    <p class="text-muted mb-0">Sube cualquier archivo CSV para validar su formato, detectar codificación y separador, y previsualizar sus columnas.</p>
   </div>
   <a href="/clean" class="btn btn-orange">
     Ir a Limpieza & Diagnóstico <i class="bi bi-arrow-right"></i>
@@ -19,41 +19,93 @@
     <div class="card-custom">
       <div class="card-title-custom">
         <span><i class="bi bi-upload"></i> Subir Archivo CSV</span>
-        <span class="badge bg-primary-subtle text-primary border">RF1</span>
+        <span class="badge bg-primary-subtle text-primary border">RF1 Oficial</span>
       </div>
 
-      <form action="/upload" method="post" enctype="multipart/form-data">
+      <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
         <div class="dropzone" id="csvDropzone">
           <i class="bi bi-filetype-csv dropzone-icon"></i>
           <h6 class="fw-bold mb-1">Arrastra tu archivo CSV aquí</h6>
-          <p class="text-muted small mb-0">o haz clic para seleccionar desde tu computadora (Máx 25 MB)</p>
+          <p class="text-muted small mb-0">o haz clic para examinar archivos (Límite: 25 MB)</p>
           <input type="file" id="csvFileInput" name="file" accept=".csv" class="d-none">
         </div>
 
         <div id="fileInfoDisplay" class="alert alert-info d-flex align-items-center gap-2 mt-3 d-none">
           <i class="bi bi-check-circle-fill text-success fs-5"></i>
-          <div>
-            <strong id="selectedFileName">archivo.csv</strong> (<span id="selectedFileSize">0 KB</span>)
+          <div class="w-100">
+            <div class="d-flex justify-content-between">
+              <strong id="selectedFileName">archivo.csv</strong>
+              <span id="selectedFileSize" class="badge bg-secondary">0 KB</span>
+            </div>
             <div class="small text-muted">Listo para procesar y validar</div>
           </div>
         </div>
 
-        <button type="submit" id="btnUploadSubmit" class="btn btn-orange w-100 mt-3" disabled>
-          <i class="bi bi-cpu-fill"></i> Procesar y Validar Archivo
+        <!-- Barra de Progreso de Carga -->
+        <div id="uploadProgress" class="progress mt-3 d-none" style="height: 6px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning w-100" role="progressbar"></div>
+        </div>
+
+        <button type="submit" id="btnUploadSubmit" class="btn btn-orange w-100 mt-3 py-2 fw-bold" disabled>
+          <span id="btnText"><i class="bi bi-cpu-fill"></i> Validar e Ingestar CSV</span>
+          <span id="btnSpinner" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Validando estructura...</span>
         </button>
       </form>
     </div>
 
-    <!-- Tarjeta de Validaciones Automáticas -->
+    <!-- Ficha de Validación del Dataset Activo -->
+    {% if active_dataset and active_dataset.id %}
     <div class="card-custom">
       <div class="card-title-custom">
-        <span><i class="bi bi-shield-check text-success"></i> Validaciones del Motor</span>
+        <span><i class="bi bi-patch-check-fill text-success"></i> Resultado de Validación (RF1)</span>
+        <span class="badge bg-success">100% Válido</span>
       </div>
-      <ul class="list-unstyled mb-0 small">
-        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i> <strong>Formato:</strong> Solo archivos con extensión <code>.csv</code>.</li>
-        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i> <strong>Codificación:</strong> Detección automática (UTF-8, Latin-1, ISO-8859-1).</li>
-        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i> <strong>Separador:</strong> Inferencia inteligente (coma <code>,</code>, punto y coma <code>;</code> o tab).</li>
-        <li><i class="bi bi-check2-circle text-success me-2"></i> <strong>Tamaño:</strong> Límite de seguridad de 25 MB.</li>
+      <div class="table-responsive">
+        <table class="table table-sm table-bordered small mb-0">
+          <tbody>
+            <tr>
+              <th class="bg-light w-50">Nombre de Archivo:</th>
+              <td><strong>{{ active_dataset.filename }}</strong></td>
+            </tr>
+            <tr>
+              <th class="bg-light">Tamaño del Archivo:</th>
+              <td>{{ active_dataset.filesize_kb }} KB ({{ active_dataset.filesize_mb }} MB)</td>
+            </tr>
+            <tr>
+              <th class="bg-light">Codificación Detectada:</th>
+              <td><span class="badge bg-primary-subtle text-primary border">{{ active_dataset.encoding|upper }}</span></td>
+            </tr>
+            <tr>
+              <th class="bg-light">Separador Inferido:</th>
+              <td>
+                <span class="badge bg-secondary-subtle text-dark border">
+                  {% if active_dataset.separator == ',' %}Coma ( , )
+                  {% elif active_dataset.separator == ';' %}Punto y Coma ( ; )
+                  {% elif active_dataset.separator == '\t' %}Tabulador ( \t )
+                  {% else %}{{ active_dataset.separator }}{% endif %}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <th class="bg-light">Dimensiones Totales:</th>
+              <td>{{ active_dataset.row_count }} registros &times; {{ active_dataset.col_count }} columnas</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Tarjeta de Validaciones del Motor -->
+    <div class="card-custom">
+      <div class="card-title-custom">
+        <span><i class="bi bi-shield-check text-success"></i> Reglas de Validación Automática</span>
+      </div>
+      <ul class="list-unstyled mb-0 small text-muted">
+        <li class="mb-2"><i class="bi bi-check2 text-success me-2"></i><strong>Formato:</strong> Extensión estricta <code>.csv</code> y MIME compatible.</li>
+        <li class="mb-2"><i class="bi bi-check2 text-success me-2"></i><strong>Codificación:</strong> Detección con <code>chardet</code> (UTF-8, Latin-1, ISO).</li>
+        <li class="mb-2"><i class="bi bi-check2 text-success me-2"></i><strong>Separador:</strong> Inferencia con <code>csv.Sniffer</code> (coma, punto y coma, tab).</li>
+        <li><i class="bi bi-check2 text-success me-2"></i><strong>Almacenamiento:</strong> Versión cruda persistida en <code>storage/datasets/</code>.</li>
       </ul>
     </div>
   </div>
@@ -62,27 +114,45 @@
   <div class="col-lg-7 mb-4">
     <div class="card-custom">
       <div class="card-title-custom">
-        <span><i class="bi bi-table"></i> Vista Previa de Datos (Primeras Filas)</span>
-        <span class="badge bg-secondary">{{ preview_data|length }} registros mostrados</span>
+        <div class="d-flex align-items-center gap-2">
+          <span><i class="bi bi-table"></i> Vista Previa de Registros</span>
+          <span class="badge bg-secondary" id="previewCountBadge">{{ preview_data|length }} mostrados</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <label class="small text-muted mb-0">Mostrar:</label>
+          <select class="form-select form-select-sm py-0" style="width: 75px;" id="rowsPerPageSelect">
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+        </div>
       </div>
 
       <div class="table-responsive-custom">
-        <table class="table table-hover table-striped align-middle small mb-0">
+        <table class="table table-hover table-striped align-middle small mb-0" id="previewDataTable">
           <thead class="table-dark sticky-top">
             <tr>
               {% for col in columns %}
-              <th scope="col">
+              <th scope="col" style="white-space: nowrap;">
                 {{ col }}
-                <span class="badge bg-secondary-subtle text-light fw-normal d-block" style="font-size: 0.65rem;">columna</span>
+                {% if column_types and col in column_types %}
+                <span class="badge {{ column_types[col].badge }} d-block mt-1 fw-normal" style="font-size: 0.65rem;">
+                  {{ column_types[col].tipo }}
+                </span>
+                {% else %}
+                <span class="badge bg-secondary-subtle text-light fw-normal d-block mt-1" style="font-size: 0.65rem;">
+                  Columna
+                </span>
+                {% endif %}
               </th>
               {% endfor %}
             </tr>
           </thead>
           <tbody>
             {% for row in preview_data %}
-            <tr>
+            <tr class="preview-row" data-index="{{ loop.index }}">
               {% for col in columns %}
-              <td>{{ row[col] }}</td>
+              <td style="white-space: nowrap;">{{ row[col] }}</td>
               {% endfor %}
             </tr>
             {% endfor %}
@@ -91,12 +161,59 @@
       </div>
 
       <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-        <span class="text-muted small">Mostrando muestra inicial representativa del dataset cargado.</span>
+        <span class="text-muted small">
+          Total: <strong>{{ active_dataset.row_count if active_dataset.row_count else active_dataset.rows }}</strong> registros &bull;
+          <strong>{{ columns|length }}</strong> columnas
+        </span>
         <a href="/clean" class="btn btn-sm btn-orange">
-          Continuar a Limpieza <i class="bi bi-arrow-right"></i>
+          Continuar a Limpieza Asistida <i class="bi bi-arrow-right"></i>
         </a>
       </div>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Control de subida y spinner
+  const form = document.getElementById("uploadForm");
+  const btn = document.getElementById("btnUploadSubmit");
+  const btnText = document.getElementById("btnText");
+  const btnSpinner = document.getElementById("btnSpinner");
+  const progress = document.getElementById("uploadProgress");
+
+  if (form) {
+    form.addEventListener("submit", function() {
+      btn.disabled = true;
+      btnText.classList.add("d-none");
+      btnSpinner.classList.remove("d-none");
+      progress.classList.remove("d-none");
+    });
+  }
+
+  // Selector dinámico de filas visibles
+  const rowsSelect = document.getElementById("rowsPerPageSelect");
+  const rows = document.querySelectorAll(".preview-row");
+  const countBadge = document.getElementById("previewCountBadge");
+
+  function updateVisibleRows() {
+    const limit = parseInt(rowsSelect.value);
+    let visible = 0;
+    rows.forEach((row, idx) => {
+      if (idx < limit) {
+        row.style.display = "";
+        visible++;
+      } else {
+        row.style.display = "none";
+      }
+    });
+    if (countBadge) countBadge.textContent = visible + " mostrados";
+  }
+
+  if (rowsSelect) {
+    rowsSelect.addEventListener("change", updateVisibleRows);
+    updateVisibleRows();
+  }
+</script>
 {% endblock %}
