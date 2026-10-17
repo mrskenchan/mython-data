@@ -17,6 +17,7 @@ from analisis.cleaner import diagnosticar_dataset, ejecutar_limpieza
 from analisis.tree_engine import entrenar_arbol
 from analisis.association import generar_reglas_mock, minar_reglas_asociacion
 from analisis.dashboard_engine import obtener_datos_dashboard
+from analisis.reporter import generar_dossier_ejecutivo
 from analisis.csv_loader import (
     cargar_y_validar_csv,
     obtener_catalogo_datasets,
@@ -337,7 +338,30 @@ async def dashboard_page(request: Request):
 
 
 @app.get("/reports", response_class=HTMLResponse)
-async def reports_page(request: Request):
+async def reports_page(request: Request, download: str = None):
     """Vista de Dossier e Informes Ejecutivos (RF5)"""
     ctx = _obtener_contexto_base(request, "reports")
-    return templates.TemplateResponse(request=request, name="report.html", context=ctx)
+    
+    # Extraer reglas para el informe
+    reglas_res = minar_reglas_asociacion(
+        df=CURRENT_DATASET.get("df"),
+        columnas=CURRENT_DATASET.get("columns"),
+        min_support=0.05,
+        min_confidence=0.60,
+        min_lift=1.0
+    )
+    reglas = reglas_res.get("reglas", [])
+    
+    dossier = generar_dossier_ejecutivo(
+        dataset_meta=CURRENT_DATASET,
+        df=CURRENT_DATASET.get("df"),
+        audit_limpieza=None,
+        metricas_arbol=None,
+        reglas_asociacion=reglas
+    )
+    ctx["dossier"] = dossier
+    
+    response = templates.TemplateResponse(request=request, name="report.html", context=ctx)
+    if download == "html":
+        response.headers["Content-Disposition"] = 'attachment; filename="informe_ejecutivo_orangeweb.html"'
+    return response
