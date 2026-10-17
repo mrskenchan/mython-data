@@ -82,13 +82,19 @@
       <div class="d-flex align-items-center gap-3">
         <div class="dataset-pill {% if not active_dataset %}empty{% endif %}">
           <i class="bi bi-file-earmark-spreadsheet-fill"></i>
-          <span>Dataset Activo: <strong>{{ active_dataset.filename if active_dataset else 'clientes_churn.csv (Demo)' }}</strong></span>
+          <span>Dataset: <strong>{{ active_dataset.filename if active_dataset else 'clientes_churn.csv (Demo)' }}</strong></span>
           {% if active_dataset %}
             <span class="badge bg-secondary">{{ active_dataset.rows }} filas</span>
+            <span class="badge bg-light text-dark border">{{ active_dataset.columns|length }} columnas</span>
           {% else %}
             <span class="badge bg-warning text-dark">Mock Activo</span>
           {% endif %}
         </div>
+
+        <!-- Botón Historial de Datasets -->
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalDatasets">
+          <i class="bi bi-folder2-open"></i> Mis Datasets ({{ dataset_catalog|length if dataset_catalog else 0 }})
+        </button>
       </div>
 
       <div class="d-flex align-items-center gap-2">
@@ -101,10 +107,96 @@
       </div>
     </header>
 
+    <!-- Área de Alertas Globales -->
+    <div class="px-4 pt-3">
+      {% if alert_error %}
+      <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 mb-0" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+        <div><strong>Error de validación:</strong> {{ alert_error }}</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+      </div>
+      {% endif %}
+
+      {% if alert_success %}
+      <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-0" role="alert">
+        <i class="bi bi-check-circle-fill fs-5"></i>
+        <div>{{ alert_success }}</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+      </div>
+      {% endif %}
+    </div>
+
     <!-- Área de Contenido Dinámico -->
     <main class="content-container">
       {% block content %}{% endblock %}
     </main>
+  </div>
+
+  <!-- Modal: Mis Datasets Guardados -->
+  <div class="modal fade" id="modalDatasets" tabindex="-1" aria-labelledby="modalDatasetsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold" id="modalDatasetsLabel">
+            <i class="bi bi-folder-check text-primary"></i> Catálogo de Datasets en Almacenamiento
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body p-0">
+          {% if dataset_catalog and dataset_catalog|length > 0 %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle small mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Archivo</th>
+                  <th>Dimensiones</th>
+                  <th>Codificación</th>
+                  <th>Separador</th>
+                  <th>Fecha Subida</th>
+                  <th class="text-end">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in dataset_catalog %}
+                <tr {% if active_dataset and active_dataset.id == d.id %}class="table-warning"{% endif %}>
+                  <td>
+                    <strong>{{ d.filename }}</strong>
+                    <div class="text-muted" style="font-size: 0.7rem;">{{ d.filesize_kb }} KB</div>
+                  </td>
+                  <td>{{ d.row_count }} filas &times; {{ d.col_count }} cols</td>
+                  <td><code>{{ d.encoding }}</code></td>
+                  <td><code>{{ d.separator }}</code></td>
+                  <td>{{ d.created_at }}</td>
+                  <td class="text-end">
+                    <form action="/datasets/select/{{ d.id }}" method="post" class="d-inline">
+                      <button type="submit" class="btn btn-sm btn-orange py-0 px-2" {% if active_dataset and active_dataset.id == d.id %}disabled{% endif %}>
+                        {% if active_dataset and active_dataset.id == d.id %}Activo{% else %}Seleccionar{% endif %}
+                      </button>
+                    </form>
+                    <a href="/datasets/delete/{{ d.id }}" class="btn btn-sm btn-outline-danger py-0 px-2 ms-1" onclick="return confirm('¿Seguro que deseas eliminar este dataset?');">
+                      <i class="bi bi-trash"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted">
+            <i class="bi bi-folder-x fs-1 text-secondary mb-2 d-block"></i>
+            <p class="mb-0">Aún no hay datasets guardados en el almacenamiento local.</p>
+          </div>
+          {% endif %}
+        </div>
+        <div class="modal-footer bg-light py-2">
+          <a href="/upload" class="btn btn-sm btn-orange">
+            <i class="bi bi-cloud-arrow-up"></i> Subir Nuevo CSV
+          </a>
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Bootstrap 5 JS Bundle -->
