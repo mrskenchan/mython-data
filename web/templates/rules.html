@@ -13,43 +13,79 @@
   </a>
 </div>
 
+{% if aviso %}
+<div class="alert alert-info alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+  <i class="bi bi-info-circle-fill fs-5"></i>
+  <div>{{ aviso }}</div>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<!-- Resumen y KPIs de Asociación -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value text-success" id="kpiTotalRules">{{ total_reglas }}</div>
+      <div class="kpi-label"><i class="bi bi-check2-circle"></i> Reglas Extraídas</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value text-primary">{{ frequent_itemsets_count }}</div>
+      <div class="kpi-label"><i class="bi bi-boxes"></i> Itemsets Frecuentes</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value text-warning">{{ "%.1f"|format(min_support * 100) }}%</div>
+      <div class="kpi-label"><i class="bi bi-funnel"></i> Soporte Mínimo</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value text-info">{{ "%.0f"|format(min_confidence * 100) }}%</div>
+      <div class="kpi-label"><i class="bi bi-shield-shaded"></i> Confianza Mínima</div>
+    </div>
+  </div>
+</div>
+
 <!-- Controles y Umbrales -->
 <div class="card-custom mb-4">
   <div class="card-title-custom">
-    <span><i class="bi bi-sliders2"></i> Parámetros de Minería de Asociación</span>
-    <span class="badge bg-success-subtle text-success border">mlxtend</span>
+    <span><i class="bi bi-sliders2"></i> Parámetros de Extracción y Minería</span>
+    <span class="badge bg-success-subtle text-success border">{{ algoritmo_utilizado }}</span>
   </div>
 
   <form action="/rules" method="post" class="row g-3 align-items-end">
     <div class="col-md-3">
       <label class="form-label fw-bold small">Algoritmo de Extracción</label>
       <select class="form-select form-select-sm" name="algorithm">
-        <option value="fpgrowth" selected>FP-Growth (Recomendado - Árbol FP)</option>
-        <option value="apriori">Apriori Tradicional</option>
+        <option value="fpgrowth" {% if algorithm == 'fpgrowth' %}selected{% endif %}>FP-Growth (Recomendado - Árbol FP)</option>
+        <option value="apriori" {% if algorithm == 'apriori' %}selected{% endif %}>Apriori Tradicional</option>
       </select>
     </div>
 
     <div class="col-md-3">
       <div class="d-flex justify-content-between">
         <label class="form-label fw-bold small">Soporte Mínimo (Min Support)</label>
-        <span class="badge bg-secondary" id="labelSup">5% (0.05)</span>
+        <span class="badge bg-secondary" id="labelSup">{{ "%.0f"|format(min_support * 100) }}% ({{ min_support }})</span>
       </div>
-      <input type="range" class="form-range form-range-reactive" min="0.01" max="0.30" step="0.01" value="0.05" 
+      <input type="range" class="form-range form-range-reactive" min="0.01" max="0.30" step="0.01" value="{{ min_support }}" 
              name="min_support" data-target-label="labelSup">
     </div>
 
     <div class="col-md-3">
       <div class="d-flex justify-content-between">
         <label class="form-label fw-bold small">Confianza Mínima (Min Confidence)</label>
-        <span class="badge bg-secondary" id="labelConf">60% (0.60)</span>
+        <span class="badge bg-secondary" id="labelConf">{{ "%.0f"|format(min_confidence * 100) }}% ({{ min_confidence }})</span>
       </div>
-      <input type="range" class="form-range form-range-reactive" min="0.20" max="0.95" step="0.05" value="0.60" 
+      <input type="range" class="form-range form-range-reactive" min="0.20" max="0.95" step="0.05" value="{{ min_confidence }}" 
              name="min_confidence" data-target-label="labelConf">
     </div>
 
     <div class="col-md-3">
       <button type="submit" class="btn btn-orange w-100 py-2 fw-bold">
-        <i class="bi bi-search"></i> Extraer Reglas Frecuentes
+        <i class="bi bi-arrow-repeat"></i> Recalcular Reglas
       </button>
     </div>
   </form>
@@ -60,14 +96,31 @@
   <div class="col-lg-7 mb-4">
     <div class="card-custom h-100">
       <div class="card-title-custom">
-        <span><i class="bi bi-table"></i> Reglas de Asociación Encontradas</span>
-        <span class="badge bg-success">{{ rules|length }} reglas calculadas</span>
+        <div class="d-flex align-items-center gap-2">
+          <span><i class="bi bi-table"></i> Reglas de Asociación</span>
+          <span class="badge bg-success" id="badgeFilteredCount">{{ rules|length }} visibles</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-outline-secondary py-0" id="btnExportCSV" title="Exportar a CSV">
+            <i class="bi bi-download"></i> CSV
+          </button>
+        </div>
       </div>
 
-      <div class="table-responsive">
-        <table class="table table-hover align-middle small mb-0">
-          <thead class="table-dark">
+      <!-- Barra de búsqueda rápida de reglas -->
+      <div class="p-2 border-bottom bg-light">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control" id="ruleSearchInput" placeholder="Filtrar por antecedente o consecuente (ej. Leche, Café)...">
+        </div>
+      </div>
+
+      {% if rules and rules|length > 0 %}
+      <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+        <table class="table table-hover align-middle small mb-0" id="rulesTable">
+          <thead class="table-dark sticky-top">
             <tr>
+              <th>#</th>
               <th>Antecedente [X]</th>
               <th>Consecuente [Y]</th>
               <th>Soporte</th>
@@ -77,7 +130,8 @@
           </thead>
           <tbody>
             {% for r in rules %}
-            <tr>
+            <tr class="rule-row" data-search="{{ r.antecedents|join(' ')|lower }} {{ r.consequents|join(' ')|lower }}">
+              <td><span class="text-muted">{{ loop.index }}</span></td>
               <td>
                 {% for item in r.antecedents %}
                 <span class="badge bg-primary-subtle text-primary border me-1">{{ item }}</span>
@@ -91,7 +145,7 @@
               <td>{{ "%.1f"|format(r.support * 100) }}%</td>
               <td><strong>{{ "%.0f"|format(r.confidence * 100) }}%</strong></td>
               <td>
-                {% if r.lift > 2.0 %}
+                {% if r.lift >= 2.0 %}
                 <span class="badge-lift-high">{{ "%.2f"|format(r.lift) }}x</span>
                 {% else %}
                 <span class="badge-lift-med">{{ "%.2f"|format(r.lift) }}x</span>
@@ -102,6 +156,13 @@
           </tbody>
         </table>
       </div>
+      {% else %}
+      <div class="p-4 text-center text-muted">
+        <i class="bi bi-exclamation-diamond fs-1 text-warning d-block mb-2"></i>
+        <h5>No se encontraron reglas con los umbrales actuales</h5>
+        <p class="small">Prueba reduciendo el <strong>Soporte Mínimo</strong> o la <strong>Confianza Mínima</strong> en los controles superiores.</p>
+      </div>
+      {% endif %}
     </div>
   </div>
 
@@ -112,9 +173,9 @@
         <span><i class="bi bi-scatter-chart text-primary"></i> Dispersión Soporte vs Confianza</span>
         <span class="badge bg-secondary">Plotly.js</span>
       </div>
-      <div id="rulesScatterPlot" style="height: 320px;"></div>
+      <div id="rulesScatterPlot" style="height: 350px;"></div>
       <div class="small text-muted text-center mt-2">
-        Burbujas coloreadas y escaladas según la fuerza del <strong>Lift</strong>.
+        Burbujas coloreadas y escaladas según la fuerza del indicador <strong>Lift</strong>.
       </div>
     </div>
   </div>
@@ -123,37 +184,90 @@
 
 {% block scripts %}
 <script>
-  // Inicialización del gráfico Plotly para Reglas de Asociación
   document.addEventListener("DOMContentLoaded", function() {
     const rulesData = {{ rules | tojson }};
-    const xSup = rulesData.map(r => r.support * 100);
-    const yConf = rulesData.map(r => r.confidence * 100);
-    const zLift = rulesData.map(r => r.lift);
-    const textLabels = rulesData.map(r => `${r.antecedents.join(', ')} ➔ ${r.consequents.join(', ')}<br>Lift: ${r.lift}x`);
+    
+    // 1. Gráfico Plotly
+    if (rulesData && rulesData.length > 0) {
+      const xSup = rulesData.map(r => r.support * 100);
+      const yConf = rulesData.map(r => r.confidence * 100);
+      const zLift = rulesData.map(r => r.lift);
+      const textLabels = rulesData.map(r => `${r.antecedents.join(', ')} ➔ ${r.consequents.join(', ')}<br>Soporte: ${(r.support*100).toFixed(1)}%<br>Confianza: ${(r.confidence*100).toFixed(0)}%<br>Lift: ${r.lift}x`);
 
-    const trace = {
-      x: xSup,
-      y: yConf,
-      text: textLabels,
-      mode: 'markers',
-      marker: {
-        size: zLift.map(l => l * 12),
-        color: zLift,
-        colorscale: 'Viridis',
-        showscale: true,
-        colorbar: { title: 'Lift' }
-      }
-    };
+      const trace = {
+        x: xSup,
+        y: yConf,
+        text: textLabels,
+        mode: 'markers',
+        hoverinfo: 'text',
+        marker: {
+          size: zLift.map(l => Math.max(12, Math.min(30, l * 12))),
+          color: zLift,
+          colorscale: 'Viridis',
+          showscale: true,
+          colorbar: { title: 'Lift' }
+        }
+      };
 
-    const layout = {
-      margin: { t: 20, r: 20, b: 40, l: 40 },
-      xaxis: { title: 'Soporte (%)' },
-      yaxis: { title: 'Confianza (%)' },
-      paper_bgcolor: 'transparent',
-      plot_bgcolor: '#f8fafc'
-    };
+      const layout = {
+        margin: { t: 20, r: 20, b: 45, l: 45 },
+        xaxis: { title: 'Soporte (%)', zeroline: false },
+        yaxis: { title: 'Confianza (%)', zeroline: false },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: '#f8fafc'
+      };
 
-    Plotly.newPlot('rulesScatterPlot', [trace], layout, {responsive: true, displayModeBar: false});
+      Plotly.newPlot('rulesScatterPlot', [trace], layout, {responsive: true, displayModeBar: false});
+    } else {
+      document.getElementById('rulesScatterPlot').innerHTML = `
+        <div class="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
+          <i class="bi bi-bar-chart-steps fs-1 mb-2"></i>
+          <span>Sin datos para graficar con los filtros actuales</span>
+        </div>`;
+    }
+
+    // 2. Filtro de búsqueda en tiempo real
+    const searchInput = document.getElementById("ruleSearchInput");
+    const rows = document.querySelectorAll(".rule-row");
+    const countBadge = document.getElementById("badgeFilteredCount");
+
+    if (searchInput) {
+      searchInput.addEventListener("input", function() {
+        const query = this.value.trim().toLowerCase();
+        let visibleCount = 0;
+        rows.forEach(row => {
+          const text = row.getAttribute("data-search") || "";
+          if (query === "" || text.includes(query)) {
+            row.style.display = "";
+            visibleCount++;
+          } else {
+            row.style.display = "none";
+          }
+        });
+        if (countBadge) countBadge.textContent = `${visibleCount} visibles`;
+      });
+    }
+
+    // 3. Exportación a CSV
+    const btnExport = document.getElementById("btnExportCSV");
+    if (btnExport && rulesData && rulesData.length > 0) {
+      btnExport.addEventListener("click", function() {
+        let csvContent = "Antecedents,Consequents,Support,Confidence,Lift,Impact\n";
+        rulesData.forEach(r => {
+          const ant = `"${r.antecedents.join('; ')}"`;
+          const con = `"${r.consequents.join('; ')}"`;
+          csvContent += `${ant},${con},${r.support},${r.confidence},${r.lift},${r.impact}\n`;
+        });
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.setAttribute("href", url);
+        a.setAttribute("download", "reglas_asociacion_orangeweb.csv");
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
+    }
   });
 </script>
 {% endblock %}

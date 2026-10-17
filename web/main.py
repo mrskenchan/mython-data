@@ -15,7 +15,7 @@ import shutil
 
 from analisis.cleaner import diagnosticar_dataset, ejecutar_limpieza
 from analisis.tree_engine import entrenar_arbol
-from analisis.association import generar_reglas_mock
+from analisis.association import generar_reglas_mock, minar_reglas_asociacion
 from analisis.csv_loader import (
     cargar_y_validar_csv,
     obtener_catalogo_datasets,
@@ -265,10 +265,33 @@ async def handle_tree(
 
 
 @app.get("/rules", response_class=HTMLResponse)
-async def rules_page(request: Request):
+async def rules_page(
+    request: Request,
+    min_support: float = 0.05,
+    min_confidence: float = 0.60,
+    min_lift: float = 1.0,
+    algorithm: str = "fpgrowth"
+):
     """Vista de Reglas de Asociación (RF4)"""
     ctx = _obtener_contexto_base(request, "rules")
-    ctx["rules"] = generar_reglas_mock(min_support=0.05, min_confidence=0.60, min_lift=1.0)
+    resultado = minar_reglas_asociacion(
+        df=CURRENT_DATASET.get("df"),
+        columnas=CURRENT_DATASET.get("columns"),
+        min_support=min_support,
+        min_confidence=min_confidence,
+        min_lift=min_lift,
+        algorithm=algorithm
+    )
+    ctx["rules"] = resultado.get("reglas", [])
+    ctx["total_reglas"] = resultado.get("total_reglas", 0)
+    ctx["frequent_itemsets_count"] = resultado.get("frequent_itemsets_count", 0)
+    ctx["algoritmo_utilizado"] = resultado.get("algoritmo_utilizado", algorithm.upper())
+    ctx["aviso"] = resultado.get("aviso")
+    ctx["min_support"] = min_support
+    ctx["min_confidence"] = min_confidence
+    ctx["min_lift"] = min_lift
+    ctx["algorithm"] = algorithm
+    ctx["available_columns"] = CURRENT_DATASET.get("columns", [])
     return templates.TemplateResponse(request=request, name="rules.html", context=ctx)
 
 
@@ -276,11 +299,30 @@ async def rules_page(request: Request):
 async def handle_rules(
     request: Request,
     min_support: float = Form(0.05),
-    min_confidence: float = Form(0.60)
+    min_confidence: float = Form(0.60),
+    min_lift: float = Form(1.0),
+    algorithm: str = Form("fpgrowth")
 ):
-    """Filtra y recalcula las reglas según los sliders seleccionados"""
+    """Filtra y recalcula las reglas según los controles seleccionados"""
     ctx = _obtener_contexto_base(request, "rules")
-    ctx["rules"] = generar_reglas_mock(min_support=min_support, min_confidence=min_confidence, min_lift=1.0)
+    resultado = minar_reglas_asociacion(
+        df=CURRENT_DATASET.get("df"),
+        columnas=CURRENT_DATASET.get("columns"),
+        min_support=min_support,
+        min_confidence=min_confidence,
+        min_lift=min_lift,
+        algorithm=algorithm
+    )
+    ctx["rules"] = resultado.get("reglas", [])
+    ctx["total_reglas"] = resultado.get("total_reglas", 0)
+    ctx["frequent_itemsets_count"] = resultado.get("frequent_itemsets_count", 0)
+    ctx["algoritmo_utilizado"] = resultado.get("algoritmo_utilizado", algorithm.upper())
+    ctx["aviso"] = resultado.get("aviso")
+    ctx["min_support"] = min_support
+    ctx["min_confidence"] = min_confidence
+    ctx["min_lift"] = min_lift
+    ctx["algorithm"] = algorithm
+    ctx["available_columns"] = CURRENT_DATASET.get("columns", [])
     return templates.TemplateResponse(request=request, name="rules.html", context=ctx)
 
 
