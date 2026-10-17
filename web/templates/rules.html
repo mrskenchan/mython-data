@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Reglas de Asociación — OrangeWeb{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-bezier2 text-success"></i> 4. Minería de Reglas de Asociación (RF4)</h3>
+    <p class="text-muted mb-0">Descubre patrones y correlaciones frecuentes entre variables usando FP-Growth o Apriori con MLxtend.</p>
+  </div>
+  <a href="/dashboard" class="btn btn-orange">
+    Ir a Dashboard Analítico <i class="bi bi-arrow-right"></i>
+  </a>
+</div>
+
+<!-- Controles y Umbrales -->
+<div class="card-custom mb-4">
+  <div class="card-title-custom">
+    <span><i class="bi bi-sliders2"></i> Parámetros de Minería de Asociación</span>
+    <span class="badge bg-success-subtle text-success border">mlxtend</span>
+  </div>
+
+  <form action="/rules" method="post" class="row g-3 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label fw-bold small">Algoritmo de Extracción</label>
+      <select class="form-select form-select-sm" name="algorithm">
+        <option value="fpgrowth" selected>FP-Growth (Recomendado - Árbol FP)</option>
+        <option value="apriori">Apriori Tradicional</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <div class="d-flex justify-content-between">
+        <label class="form-label fw-bold small">Soporte Mínimo (Min Support)</label>
+        <span class="badge bg-secondary" id="labelSup">5% (0.05)</span>
+      </div>
+      <input type="range" class="form-range form-range-reactive" min="0.01" max="0.30" step="0.01" value="0.05" 
+             name="min_support" data-target-label="labelSup">
+    </div>
+
+    <div class="col-md-3">
+      <div class="d-flex justify-content-between">
+        <label class="form-label fw-bold small">Confianza Mínima (Min Confidence)</label>
+        <span class="badge bg-secondary" id="labelConf">60% (0.60)</span>
+      </div>
+      <input type="range" class="form-range form-range-reactive" min="0.20" max="0.95" step="0.05" value="0.60" 
+             name="min_confidence" data-target-label="labelConf">
+    </div>
+
+    <div class="col-md-3">
+      <button type="submit" class="btn btn-orange w-100 py-2 fw-bold">
+        <i class="bi bi-search"></i> Extraer Reglas Frecuentes
+      </button>
+    </div>
+  </form>
+</div>
+
+<div class="row">
+  <!-- Tabla de Reglas -->
+  <div class="col-lg-7 mb-4">
+    <div class="card-custom h-100">
+      <div class="card-title-custom">
+        <span><i class="bi bi-table"></i> Reglas de Asociación Encontradas</span>
+        <span class="badge bg-success">{{ rules|length }} reglas calculadas</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle small mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th>Antecedente [X]</th>
+              <th>Consecuente [Y]</th>
+              <th>Soporte</th>
+              <th>Confianza</th>
+              <th>Lift</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rules %}
+            <tr>
+              <td>
+                {% for item in r.antecedents %}
+                <span class="badge bg-primary-subtle text-primary border me-1">{{ item }}</span>
+                {% endfor %}
+              </td>
+              <td>
+                {% for item in r.consequents %}
+                <span class="badge bg-warning-subtle text-dark border me-1">{{ item }}</span>
+                {% endfor %}
+              </td>
+              <td>{{ "%.1f"|format(r.support * 100) }}%</td>
+              <td><strong>{{ "%.0f"|format(r.confidence * 100) }}%</strong></td>
+              <td>
+                {% if r.lift > 2.0 %}
+                <span class="badge-lift-high">{{ "%.2f"|format(r.lift) }}x</span>
+                {% else %}
+                <span class="badge-lift-med">{{ "%.2f"|format(r.lift) }}x</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gráfico Scatter Plot de Reglas (Plotly) -->
+  <div class="col-lg-5 mb-4">
+    <div class="card-custom h-100">
+      <div class="card-title-custom">
+        <span><i class="bi bi-scatter-chart text-primary"></i> Dispersión Soporte vs Confianza</span>
+        <span class="badge bg-secondary">Plotly.js</span>
+      </div>
+      <div id="rulesScatterPlot" style="height: 320px;"></div>
+      <div class="small text-muted text-center mt-2">
+        Burbujas coloreadas y escaladas según la fuerza del <strong>Lift</strong>.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Inicialización del gráfico Plotly para Reglas de Asociación
+  document.addEventListener("DOMContentLoaded", function() {
+    const rulesData = {{ rules | tojson }};
+    const xSup = rulesData.map(r => r.support * 100);
+    const yConf = rulesData.map(r => r.confidence * 100);
+    const zLift = rulesData.map(r => r.lift);
+    const textLabels = rulesData.map(r => `${r.antecedents.join(', ')} ➔ ${r.consequents.join(', ')}<br>Lift: ${r.lift}x`);
+
+    const trace = {
+      x: xSup,
+      y: yConf,
+      text: textLabels,
+      mode: 'markers',
+      marker: {
+        size: zLift.map(l => l * 12),
+        color: zLift,
+        colorscale: 'Viridis',
+        showscale: true,
+        colorbar: { title: 'Lift' }
+      }
+    };
+
+    const layout = {
+      margin: { t: 20, r: 20, b: 40, l: 40 },
+      xaxis: { title: 'Soporte (%)' },
+      yaxis: { title: 'Confianza (%)' },
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: '#f8fafc'
+    };
+
+    Plotly.newPlot('rulesScatterPlot', [trace], layout, {responsive: true, displayModeBar: false});
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Árbol de Decisión — OrangeWeb{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-diagram-2-fill text-primary"></i> 3. Árbol de Decisión Supervisado (RF3)</h3>
+    <p class="text-muted mb-0">Configura los hiperparámetros, entrena con Scikit-Learn y evalúa el árbol generado con métricas en tiempo real.</p>
+  </div>
+  <a href="/rules" class="btn btn-orange">
+    Ir a Reglas de Asociación <i class="bi bi-arrow-right"></i>
+  </a>
+</div>
+
+<div class="row">
+  <!-- Panel de Configuración -->
+  <div class="col-lg-4 mb-4">
+    <div class="card-custom">
+      <div class="card-title-custom">
+        <span><i class="bi bi-gear-fill"></i> Hiperparámetros de Entrenamiento</span>
+        <span class="badge bg-primary-subtle text-primary border">scikit-learn</span>
+      </div>
+
+      <form action="/tree" method="post">
+        <!-- Variable Objetivo Target -->
+        <div class="mb-3">
+          <label class="form-label fw-bold small">Variable Objetivo (Target Y)</label>
+          <select class="form-select form-select-sm" name="target_column">
+            {% for col in available_columns %}
+            <option value="{{ col }}" {% if col == selected_target %}selected{% endif %}>{{ col }}</option>
+            {% endfor %}
+          </select>
+          <span class="text-muted" style="font-size: 0.7rem;">Variable categórica o binaria a predecir.</span>
+        </div>
+
+        <!-- Variables Predictoras Features -->
+        <div class="mb-3">
+          <label class="form-label fw-bold small">Variables Predictoras (Features X)</label>
+          <div class="p-2 border rounded-2 bg-light" style="max-height: 120px; overflow-y: auto;">
+            {% for col in available_columns %}
+            {% if col != selected_target %}
+            <div class="form-check form-check-inline small me-2 mb-1">
+              <input class="form-check-input" type="checkbox" name="features" value="{{ col }}" id="feat_{{ col }}" checked>
+              <label class="form-check-label" for="feat_{{ col }}">{{ col }}</label>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Profundidad Máxima -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between">
+            <label class="form-label fw-bold small">Profundidad Máxima (max_depth)</label>
+            <span class="badge bg-secondary" id="labelMaxDepth">{{ current_depth|default(5) }}</span>
+          </div>
+          <input type="range" class="form-range form-range-reactive" min="1" max="15" value="{{ current_depth|default(5) }}" 
+                 name="max_depth" data-target-label="labelMaxDepth">
+        </div>
+
+        <!-- Criterio de División -->
+        <div class="mb-3">
+          <label class="form-label fw-bold small">Criterio de Impureza</label>
+          <div class="btn-group w-100" role="group">
+            <input type="radio" class="btn-check" name="criterion" id="critGini" value="gini" checked>
+            <label class="btn btn-outline-secondary btn-sm" for="critGini">Gini Impurity</label>
+
+            <input type="radio" class="btn-check" name="criterion" id="critEntropy" value="entropy">
+            <label class="btn btn-outline-secondary btn-sm" for="critEntropy">Entropía / Info Gain</label>
+          </div>
+        </div>
+
+        <!-- Partición Train/Test -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between">
+            <label class="form-label fw-bold small">División Test / Train (%)</label>
+            <span class="badge bg-secondary" id="labelSplit">25% Test</span>
+          </div>
+          <input type="range" class="form-range form-range-reactive" min="10" max="40" step="5" value="25" 
+                 name="test_size" data-target-label="labelSplit">
+        </div>
+
+        <button type="submit" class="btn btn-orange w-100 py-2 fw-bold">
+          <i class="bi bi-play-circle-fill"></i> Entrenar Árbol de Decisión
+        </button>
+      </form>
+    </div>
+
+    <!-- Gestión de Modelos (Guardar, Listar, Comparar) -->
+    <div class="card-custom">
+      <div class="card-title-custom">
+        <span><i class="bi bi-folder-check"></i> Gestión de Modelos Guardados</span>
+        <span class="badge bg-success-subtle text-success border">Persistencia</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover small mb-0">
+          <thead>
+            <tr>
+              <th>Modelo</th>
+              <th>Prof.</th>
+              <th>Accuracy</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>M1 (Gini)</strong></td>
+              <td>5</td>
+              <td><span class="badge bg-success">91.4%</span></td>
+              <td><button class="btn btn-xs btn-outline-danger p-0 px-1"><i class="bi bi-trash"></i></button></td>
+            </tr>
+            <tr>
+              <td><strong>M2 (Entropía)</strong></td>
+              <td>3</td>
+              <td><span class="badge bg-primary">88.5%</span></td>
+              <td><button class="btn btn-xs btn-outline-danger p-0 px-1"><i class="bi bi-trash"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <button class="btn btn-sm btn-outline-primary w-100 mt-2">
+        <i class="bi bi-bar-chart-steps"></i> Comparar Modelos Seleccionados
+      </button>
+    </div>
+  </div>
+
+  <!-- Resultados y Visualizador -->
+  <div class="col-lg-8 mb-4">
+    <!-- Tarjetas de Métricas de Evaluación -->
+    <div class="row mb-3">
+      <div class="col-6 col-md-3 mb-2">
+        <div class="metric-kpi" style="border-top-color: #2563eb;">
+          <div class="metric-val text-primary">{{ "%.1f"|format(model_result.metrics.accuracy * 100) }}%</div>
+          <div class="metric-label">Exactitud (Accuracy)</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 mb-2">
+        <div class="metric-kpi" style="border-top-color: #10b981;">
+          <div class="metric-val text-success">{{ "%.1f"|format(model_result.metrics.precision * 100) }}%</div>
+          <div class="metric-label">Precisión (Precision)</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 mb-2">
+        <div class="metric-kpi" style="border-top-color: #f59e0b;">
+          <div class="metric-val text-warning">{{ "%.1f"|format(model_result.metrics.recall * 100) }}%</div>
+          <div class="metric-label">Sensibilidad (Recall)</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 mb-2">
+        <div class="metric-kpi" style="border-top-color: #8b5cf6;">
+          <div class="metric-val" style="color: #8b5cf6;">{{ "%.1f"|format(model_result.metrics.f1_score * 100) }}%</div>
+          <div class="metric-label">F1-Score</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visualizador del Árbol de Decisión -->
+    <div class="card-custom mb-3">
+      <div class="card-title-custom">
+        <span><i class="bi bi-diagram-3 text-primary"></i> Representación Gráfica del Árbol</span>
+        <span class="badge bg-primary">Interactivo (Zoom/Pan)</span>
+      </div>
+
+      <div class="border rounded-3 p-2 bg-light text-center" style="overflow-x: auto;">
+        {{ model_result.tree_svg | safe }}
+      </div>
+      <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+        <span><i class="bi bi-info-circle"></i> Regla raíz: Si ingreso &gt; 45,000 se predice Compra con 94% de confianza.</span>
+        <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-download"></i> Exportar SVG</button>
+      </div>
+    </div>
+
+    <!-- Matriz de Confusión y Feature Importance -->
+    <div class="row">
+      <div class="col-md-6 mb-3">
+        <div class="card-custom h-100">
+          <div class="card-title-custom">
+            <span><i class="bi bi-grid-3x3-gap-fill text-danger"></i> Matriz de Confusión</span>
+          </div>
+          <table class="table table-bordered text-center small mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Real \ Predicho</th>
+                <th>No Compra</th>
+                <th>Compra</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th class="table-light">No Compra</th>
+                <td class="bg-success-subtle fw-bold text-success">{{ model_result.confusion_matrix.matrix[0][0] }} (TN)</td>
+                <td class="bg-danger-subtle text-danger">{{ model_result.confusion_matrix.matrix[0][1] }} (FP)</td>
+              </tr>
+              <tr>
+                <th class="table-light">Compra</th>
+                <td class="bg-danger-subtle text-danger">{{ model_result.confusion_matrix.matrix[1][0] }} (FN)</td>
+                <td class="bg-success-subtle fw-bold text-success">{{ model_result.confusion_matrix.matrix[1][1] }} (TP)</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="col-md-6 mb-3">
+        <div class="card-custom h-100">
+          <div class="card-title-custom">
+            <span><i class="bi bi-bar-chart-fill text-info"></i> Importancia de Variables</span>
+          </div>
+          {% for item in model_result.feature_importance %}
+          <div class="mb-2 small">
+            <div class="d-flex justify-content-between mb-1">
+              <span>{{ item.feature }}</span>
+              <strong class="text-primary">{{ "%.0f"|format(item.importance * 100) }}%</strong>
+            </div>
+            <div class="progress" style="height: 6px;">
+              <div class="progress-bar bg-primary" role="progressbar" style="width: {{ item.importance * 100 }}%"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

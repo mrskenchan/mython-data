@@ -54,10 +54,14 @@ uploads/
 
 # Documentos locales generados (diseños, borradores, PDFs)
 *.pdf
-*.html
+/*.html
 *.html.bak
+!web/templates/*.html
+!web/templates/**/*.html
 documento_arquitectura.*
 distribucion_tareas.*
+diagramas_funcionales.*
+especificacion_requerimientos_y_api.*
 
 # IDE & Editor files
 .vscode/

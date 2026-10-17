@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Carga de Datos — OrangeWeb{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-cloud-arrow-up-fill text-primary"></i> 1. Carga de Datos y Previsualización</h3>
+    <p class="text-muted mb-0">Sube tu archivo CSV para validar su formato, codificación y visualizar los registros iniciales (RF1).</p>
+  </div>
+  <a href="/clean" class="btn btn-orange">
+    Ir a Limpieza & Diagnóstico <i class="bi bi-arrow-right"></i>
+  </a>
+</div>
+
+<div class="row">
+  <!-- Zona de Carga -->
+  <div class="col-lg-5 mb-4">
+    <div class="card-custom">
+      <div class="card-title-custom">
+        <span><i class="bi bi-upload"></i> Subir Archivo CSV</span>
+        <span class="badge bg-primary-subtle text-primary border">RF1</span>
+      </div>
+
+      <form action="/upload" method="post" enctype="multipart/form-data">
+        <div class="dropzone" id="csvDropzone">
+          <i class="bi bi-filetype-csv dropzone-icon"></i>
+          <h6 class="fw-bold mb-1">Arrastra tu archivo CSV aquí</h6>
+          <p class="text-muted small mb-0">o haz clic para seleccionar desde tu computadora (Máx 25 MB)</p>
+          <input type="file" id="csvFileInput" name="file" accept=".csv" class="d-none">
+        </div>
+
+        <div id="fileInfoDisplay" class="alert alert-info d-flex align-items-center gap-2 mt-3 d-none">
+          <i class="bi bi-check-circle-fill text-success fs-5"></i>
+          <div>
+            <strong id="selectedFileName">archivo.csv</strong> (<span id="selectedFileSize">0 KB</span>)
+            <div class="small text-muted">Listo para procesar y validar</div>
+          </div>
+        </div>
+
+        <button type="submit" id="btnUploadSubmit" class="btn btn-orange w-100 mt-3" disabled>
+          <i class="bi bi-cpu-fill"></i> Procesar y Validar Archivo
+        </button>
+      </form>
+    </div>
+
+    <!-- Tarjeta de Validaciones Automáticas -->
+    <div class="card-custom">
+      <div class="card-title-custom">
+        <span><i class="bi bi-shield-check text-success"></i> Validaciones del Motor</span>
+      </div>
+      <ul class="list-unstyled mb-0 small">
+        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i> <strong>Formato:</strong> Solo archivos con extensión <code>.csv</code>.</li>
+        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i> <strong>Codificación:</strong> Detección automática (UTF-8, Latin-1, ISO-8859-1).</li>
+        <li class="mb-2"><i class="bi bi-check2-circle text-success me-2"></i> <strong>Separador:</strong> Inferencia inteligente (coma <code>,</code>, punto y coma <code>;</code> o tab).</li>
+        <li><i class="bi bi-check2-circle text-success me-2"></i> <strong>Tamaño:</strong> Límite de seguridad de 25 MB.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Vista Previa de Datos -->
+  <div class="col-lg-7 mb-4">
+    <div class="card-custom">
+      <div class="card-title-custom">
+        <span><i class="bi bi-table"></i> Vista Previa de Datos (Primeras Filas)</span>
+        <span class="badge bg-secondary">{{ preview_data|length }} registros mostrados</span>
+      </div>
+
+      <div class="table-responsive-custom">
+        <table class="table table-hover table-striped align-middle small mb-0">
+          <thead class="table-dark sticky-top">
+            <tr>
+              {% for col in columns %}
+              <th scope="col">
+                {{ col }}
+                <span class="badge bg-secondary-subtle text-light fw-normal d-block" style="font-size: 0.65rem;">columna</span>
+              </th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in preview_data %}
+            <tr>
+              {% for col in columns %}
+              <td>{{ row[col] }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+        <span class="text-muted small">Mostrando muestra inicial representativa del dataset cargado.</span>
+        <a href="/clean" class="btn btn-sm btn-orange">
+          Continuar a Limpieza <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
