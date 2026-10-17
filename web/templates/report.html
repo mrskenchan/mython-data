@@ -3,7 +3,7 @@
 {% block title %}Informe Ejecutivo — OrangeWeb{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-4 no-print">
   <div>
     <h3 class="fw-bold mb-1"><i class="bi bi-file-earmark-text-fill text-danger"></i> 6. Informe Ejecutivo de Minería de Datos (RF5)</h3>
     <p class="text-muted mb-0">Dossier consolidado con los hallazgos del dataset, bitácora de limpieza, modelos predictivos y conclusiones.</p>
@@ -27,9 +27,9 @@
       <span class="text-muted small">Generado automáticamente por la plataforma OrangeWeb</span>
     </div>
     <div class="text-end small">
-      <div><strong>Fecha:</strong> 17 de Octubre, 2026</div>
-      <div><strong>Dataset:</strong> clientes_churn.csv</div>
-      <div><strong>Estado:</strong> Validado y Limpio</div>
+      <div><strong>Fecha:</strong> {{ dossier.fecha }}</div>
+      <div><strong>Dataset:</strong> {{ dossier.ficha_tecnica.filename }}</div>
+      <div><strong>Estado:</strong> <span class="badge bg-success-subtle text-success border">Validado &bull; Auditado</span></div>
     </div>
   </div>
 
@@ -39,22 +39,22 @@
     <div class="row g-2">
       <div class="col-md-3">
         <div class="p-2 border rounded bg-light small">
-          <strong>Registros Iniciales:</strong> 12,450 filas
+          <strong>Registros Totales:</strong> {{ dossier.ficha_tecnica.total_filas }} filas
         </div>
       </div>
       <div class="col-md-3">
         <div class="p-2 border rounded bg-light small">
-          <strong>Columnas Totales:</strong> 14 variables
+          <strong>Variables / Columnas:</strong> {{ dossier.ficha_tecnica.total_columnas }} dimensiones
         </div>
       </div>
       <div class="col-md-3">
         <div class="p-2 border rounded bg-light small">
-          <strong>Codificación:</strong> UTF-8 (coma)
+          <strong>Codificación:</strong> {{ dossier.ficha_tecnica.encoding }} (sep: <code>{{ dossier.ficha_tecnica.separator }}</code>)
         </div>
       </div>
       <div class="col-md-3">
         <div class="p-2 border rounded bg-light small">
-          <strong>Peso en Disco:</strong> 1.4 MB
+          <strong>Tamaño en Disco:</strong> {{ dossier.ficha_tecnica.filesize_kb }} KB ({{ dossier.ficha_tecnica.filesize_mb }} MB)
         </div>
       </div>
     </div>
@@ -68,29 +68,29 @@
         <tr>
           <th>Operación Aplicada</th>
           <th>Registros / Columnas Afectadas</th>
-          <th>Impacto en los Datos</th>
+          <th>Impacto y Descripción en los Datos</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>Normalización de Cabeceras</td>
-          <td>14 columnas renombradas</td>
-          <td>Estandarizadas a formato snake_case sin tildes ni espacios.</td>
+          <td>{{ dossier.ficha_tecnica.total_columnas }} columnas estandarizadas</td>
+          <td>Formato snake_case, remoción de espacios en blanco y tildes especiales.</td>
         </tr>
         <tr>
           <td>Deduplicación</td>
-          <td>18 filas eliminadas</td>
-          <td>Se descartaron registros idénticos redundantes.</td>
+          <td>{{ dossier.auditoria_limpieza.duplicates_removed }} filas duplicadas</td>
+          <td>Filtradas para prevenir sobreajuste o sesgos por redundancia en el entrenamiento.</td>
         </tr>
         <tr>
           <td>Imputación de Valores Nulos</td>
-          <td>142 celdas corregidas</td>
-          <td>Variables numéricas imputadas por mediana; categóricas por moda.</td>
+          <td>Completitud al 100%</td>
+          <td>Imputación por tendencia central (Mediana en numéricas continuas y Moda en categóricas).</td>
         </tr>
         <tr>
           <td>Tratamiento de Outliers (IQR)</td>
-          <td>24 valores recortados</td>
-          <td>Ajustados al rango intercuartílico sin eliminación de filas.</td>
+          <td>{{ dossier.auditoria_limpieza.outliers_clipped }} valores en colas extremas</td>
+          <td>Recorte suave dentro de límites $[Q_1 - 1.5 \times IQR, Q_3 + 1.5 \times IQR]$ sin pérdida de filas.</td>
         </tr>
       </tbody>
     </table>
@@ -104,19 +104,19 @@
         <div class="table-responsive">
           <table class="table table-sm table-bordered small mb-0">
             <tbody>
-              <tr><th class="bg-light w-50">Variable Objetivo:</th><td><code>compra_seguro</code></td></tr>
-              <tr><th class="bg-light">Exactitud (Accuracy):</th><td><strong class="text-success">91.4%</strong></td></tr>
-              <tr><th class="bg-light">Precisión (Precision):</th><td>89.2%</td></tr>
-              <tr><th class="bg-light">Sensibilidad (Recall):</th><td>93.1%</td></tr>
-              <tr><th class="bg-light">F1-Score:</th><td>91.1%</td></tr>
+              <tr><th class="bg-light w-50">Variable Objetivo:</th><td><code>{{ dossier.metricas_arbol.target }}</code></td></tr>
+              <tr><th class="bg-light">Exactitud (Accuracy):</th><td><strong class="text-success">{{ "%.1f"|format(dossier.metricas_arbol.accuracy * 100) }}%</strong></td></tr>
+              <tr><th class="bg-light">Precisión (Precision):</th><td>{{ "%.1f"|format(dossier.metricas_arbol.precision * 100) }}%</td></tr>
+              <tr><th class="bg-light">Sensibilidad (Recall):</th><td>{{ "%.1f"|format(dossier.metricas_arbol.recall * 100) }}%</td></tr>
+              <tr><th class="bg-light">F1-Score Ponderado:</th><td>{{ "%.1f"|format(dossier.metricas_arbol.f1_score * 100) }}%</td></tr>
             </tbody>
           </table>
         </div>
       </div>
       <div class="col-md-6">
         <div class="alert alert-info small mb-0">
-          <strong>Regla Principal del Árbol:</strong>
-          <br>Si <code>ingreso_anual &gt; $45,000</code> y <code>edad &gt; 32</code>, la probabilidad de compra asciende a un <strong>94%</strong> con un soporte muestral de 580 clientes.
+          <strong>Regla Principal Inferida por el Árbol:</strong>
+          <br>{{ dossier.metricas_arbol.main_rule }}
         </div>
       </div>
     </div>
@@ -124,43 +124,58 @@
 
   <!-- Sección 4: Patrones de Asociación -->
   <div class="mb-4">
-    <h5 class="fw-bold text-purple mb-2" style="color:#7c3aed;"><i class="bi bi-bezier2"></i> 4. Patrones de Asociación Más Fuertes (RF4)</h5>
+    <h5 class="fw-bold mb-2" style="color:#7c3aed;"><i class="bi bi-bezier2"></i> 4. Patrones de Asociación Más Fuertes (RF4)</h5>
     <table class="table table-sm table-hover table-bordered small">
       <thead class="table-light">
         <tr>
-          <th>Antecedente</th>
-          <th>Consecuente</th>
+          <th>#</th>
+          <th>Antecedente [X]</th>
+          <th>Consecuente [Y]</th>
           <th>Soporte</th>
           <th>Confianza</th>
           <th>Lift (Impacto)</th>
         </tr>
       </thead>
       <tbody>
+        {% for r in dossier.top_reglas %}
         <tr>
-          <td><code>{Café, Leche}</code></td>
-          <td><code>{Galletas}</code></td>
-          <td>8.2%</td>
-          <td>84%</td>
-          <td><span class="badge bg-success">2.41x (Muy Fuerte)</span></td>
+          <td><span class="text-muted">{{ loop.index }}</span></td>
+          <td>
+            {% for item in r.antecedents %}
+            <span class="badge bg-primary-subtle text-primary border me-1">{{ item }}</span>
+            {% endfor %}
+          </td>
+          <td>
+            {% for item in r.consequents %}
+            <span class="badge bg-warning-subtle text-dark border me-1">{{ item }}</span>
+            {% endfor %}
+          </td>
+          <td>{{ "%.1f"|format(r.support * 100) }}%</td>
+          <td><strong>{{ "%.0f"|format(r.confidence * 100) }}%</strong></td>
+          <td>
+            {% if r.lift >= 2.0 %}
+            <span class="badge-lift-high">{{ "%.2f"|format(r.lift) }}x (Muy Fuerte)</span>
+            {% else %}
+            <span class="badge-lift-med">{{ "%.2f"|format(r.lift) }}x (Fuerte)</span>
+            {% endif %}
+          </td>
         </tr>
+        {% else %}
         <tr>
-          <td><code>{Cerveza, Snacks}</code></td>
-          <td><code>{Papas Fritas}</code></td>
-          <td>6.5%</td>
-          <td>78%</td>
-          <td><span class="badge bg-success">1.95x (Fuerte)</span></td>
+          <td colspan="6" class="text-center text-muted">No se extrajeron reglas en esta sesión.</td>
         </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>
 
   <!-- Sección 5: Conclusiones -->
   <div>
-    <h5 class="fw-bold text-dark mb-2"><i class="bi bi-lightbulb-fill text-warning"></i> 5. Conclusiones y Recomendaciones</h5>
+    <h5 class="fw-bold text-dark mb-2"><i class="bi bi-lightbulb-fill text-warning"></i> 5. Conclusiones y Recomendaciones Analíticas</h5>
     <div class="p-3 bg-light rounded border small">
-      <p class="mb-2">1. <strong>Calidad de Datos:</strong> El dataset presentó una tasa baja de impurezas (menos del 1.2% de nulos y duplicados), lo cual garantizó una convergencia óptima en los algoritmos.</p>
-      <p class="mb-2">2. <strong>Capacidad Predictiva:</strong> El árbol de decisión entrenado con Scikit-Learn demuestra una alta fidelidad diagnóstica (91.4% de exactitud), con una baja tasa de falsos positivos.</p>
-      <p class="mb-0">3. <strong>Estrategia Comercial:</strong> Las reglas de asociación confirman que los productos de desayuno y snacks tienen una co-ocurrencia con Lift superior a 1.9x, recomendando empaquetamiento conjunto.</p>
+      {% for conc in dossier.conclusiones %}
+      <p class="{% if not loop.last %}mb-2{% else %}mb-0{% endif %}">{{ conc }}</p>
+      {% endfor %}
     </div>
   </div>
 </div>

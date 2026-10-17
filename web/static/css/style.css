@@ -260,3 +260,63 @@ body {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
 }
+
+/* ==========================================================================
+   Estilos de Impresión y Exportación a PDF (@media print)
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 1.2cm 1.5cm;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 10pt;
+  }
+
+  /* Ocultar elementos de navegación e interacción web */
+  .sidebar,
+  .top-header,
+  .btn,
+  .alert,
+  .modal,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ajustar contenedor principal al 100% de la hoja */
+  .main-wrapper {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .content-container {
+    padding: 0 !important;
+  }
+
+  .card-custom {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    padding: 1rem !important;
+    margin-bottom: 1rem !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .table {
+    font-size: 9pt;
+  }
+
+  .table th, .table td {
+    padding: 4px 8px !important;
+  }
+
+  /* Forzar visualización de colores en fondos de badges e impresiones */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
