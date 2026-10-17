@@ -1,0 +1,262 @@
+/* Estilos Globales OrangeWeb Data Mining */
+:root {
+  --orange-primary: #ea580c;
+  --orange-hover: #c2410c;
+  --orange-light: #fff7ed;
+  --orange-border: #fdba74;
+  --slate-dark: #0f172a;
+  --slate-sidebar: #1e293b;
+  --slate-border: #334155;
+  --bg-main: #f8fafc;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --card-bg: #ffffff;
+  --success-green: #10b981;
+  --info-blue: #0284c7;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Sidebar Estilo Orange */
+.sidebar {
+  width: 250px;
+  background-color: var(--slate-sidebar);
+  color: #cbd5e1;
+  min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  border-right: 1px solid var(--slate-border);
+}
+
+.sidebar-brand {
+  padding: 1.25rem 1.5rem;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--slate-border);
+  text-decoration: none;
+}
+
+.sidebar-brand span.brand-badge {
+  background: var(--orange-primary);
+  color: white;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.sidebar-menu {
+  list-style: none;
+  padding: 1rem 0.75rem;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.sidebar-item {
+  margin-bottom: 4px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.7rem 1rem;
+  color: #94a3b8;
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.sidebar-link.active {
+  background-color: var(--orange-primary);
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
+}
+
+.sidebar-footer {
+  padding: 1rem;
+  border-top: 1px solid var(--slate-border);
+  font-size: 0.75rem;
+  color: #64748b;
+  text-align: center;
+}
+
+/* Área Principal */
+.main-wrapper {
+  margin-left: 250px;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Navbar Superior */
+.top-navbar {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.8rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 999;
+}
+
+.dataset-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--orange-light);
+  border: 1px solid var(--orange-border);
+  color: var(--orange-hover);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.dataset-pill.empty {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+/* Contenido */
+.content-container {
+  padding: 2rem;
+  flex-grow: 1;
+}
+
+/* Tarjetas */
+.card-custom {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.card-title-custom {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--slate-dark);
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Zona de Carga Drag & Drop */
+.dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  background-color: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dropzone:hover, .dropzone.dragover {
+  border-color: var(--orange-primary);
+  background-color: var(--orange-light);
+}
+
+.dropzone-icon {
+  font-size: 3rem;
+  color: var(--orange-primary);
+  margin-bottom: 0.75rem;
+}
+
+/* Tarjetas KPI de Métricas */
+.metric-kpi {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  border-top: 3px solid var(--orange-primary);
+}
+
+.metric-val {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--slate-dark);
+}
+
+.metric-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+/* Badges de Lift */
+.badge-lift-high {
+  background-color: #dcfce7;
+  color: #15803d;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.badge-lift-med {
+  background-color: #fef9c3;
+  color: #854d0e;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+/* Botones con estilo */
+.btn-orange {
+  background-color: var(--orange-primary);
+  color: #ffffff;
+  font-weight: 600;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.btn-orange:hover {
+  background-color: var(--orange-hover);
+  color: #ffffff;
+}
+
+/* Tablas con scroll horizontal suave */
+.table-responsive-custom {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
