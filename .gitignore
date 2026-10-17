@@ -54,8 +54,10 @@ uploads/
 
 # Documentos locales generados (diseños, borradores, PDFs)
 *.pdf
-documento_arquitectura.*
+*.html
 *.html.bak
+documento_arquitectura.*
+distribucion_tareas.*
 
 # IDE & Editor files
 .vscode/
