@@ -59,9 +59,9 @@ async def upload_page(request: Request):
     """Vista de Carga de Datos y Previsualización (RF1)"""
     preview_rows = CURRENT_DATASET["df"].to_dict(orient="records")
     return templates.TemplateResponse(
-        "upload.html",
-        {
-            "request": request,
+        request=request,
+        name="upload.html",
+        context={
             "active_page": "upload",
             "active_dataset": CURRENT_DATASET,
             "columns": CURRENT_DATASET["columns"],
@@ -94,7 +94,6 @@ async def clean_page(request: Request):
     """Vista de Diagnóstico y Limpieza Asistida (RF2)"""
     diag = diagnosticar_dataset(CURRENT_DATASET["df"])
     
-    # Resumen de auditoría pre-cargado para la maqueta
     audit = {
         "duplicates_removed": 18,
         "columns_normalized": CURRENT_DATASET["columns"],
@@ -107,9 +106,9 @@ async def clean_page(request: Request):
     }
 
     return templates.TemplateResponse(
-        "clean.html",
-        {
-            "request": request,
+        request=request,
+        name="clean.html",
+        context={
             "active_page": "clean",
             "active_dataset": CURRENT_DATASET,
             "diagnostic": diag,
@@ -136,9 +135,9 @@ async def tree_page(request: Request):
     )
 
     return templates.TemplateResponse(
-        "tree.html",
-        {
-            "request": request,
+        request=request,
+        name="tree.html",
+        context={
             "active_page": "tree",
             "active_dataset": CURRENT_DATASET,
             "available_columns": CURRENT_DATASET["columns"],
@@ -165,9 +164,9 @@ async def handle_tree(
         criterion=criterion
     )
     return templates.TemplateResponse(
-        "tree.html",
-        {
-            "request": request,
+        request=request,
+        name="tree.html",
+        context={
             "active_page": "tree",
             "active_dataset": CURRENT_DATASET,
             "available_columns": CURRENT_DATASET["columns"],
@@ -183,9 +182,9 @@ async def rules_page(request: Request):
     """Vista de Reglas de Asociación (RF4)"""
     rules = generar_reglas_mock(min_support=0.05, min_confidence=0.60, min_lift=1.0)
     return templates.TemplateResponse(
-        "rules.html",
-        {
-            "request": request,
+        request=request,
+        name="rules.html",
+        context={
             "active_page": "rules",
             "active_dataset": CURRENT_DATASET,
             "rules": rules
@@ -202,9 +201,9 @@ async def handle_rules(
     """Filtra y recalcula las reglas según los sliders seleccionados"""
     rules = generar_reglas_mock(min_support=min_support, min_confidence=min_confidence, min_lift=1.0)
     return templates.TemplateResponse(
-        "rules.html",
-        {
-            "request": request,
+        request=request,
+        name="rules.html",
+        context={
             "active_page": "rules",
             "active_dataset": CURRENT_DATASET,
             "rules": rules
@@ -216,9 +215,9 @@ async def handle_rules(
 async def dashboard_page(request: Request):
     """Vista de Dashboard Analítico Interactivo (RF6)"""
     return templates.TemplateResponse(
-        "dashboard.html",
-        {
-            "request": request,
+        request=request,
+        name="dashboard.html",
+        context={
             "active_page": "dashboard",
             "active_dataset": CURRENT_DATASET
         }
@@ -229,9 +228,9 @@ async def dashboard_page(request: Request):
 async def reports_page(request: Request):
     """Vista de Dossier e Informes Ejecutivos (RF5)"""
     return templates.TemplateResponse(
-        "report.html",
-        {
-            "request": request,
+        request=request,
+        name="report.html",
+        context={
             "active_page": "reports",
             "active_dataset": CURRENT_DATASET
         }
