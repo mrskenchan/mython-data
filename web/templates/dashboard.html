@@ -13,36 +13,72 @@
   </a>
 </div>
 
-<!-- Filtros Dinámicos del Dashboard -->
+<!-- KPIs del Dataset -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value text-primary">{{ dash.kpis.total_filas }}</div>
+      <div class="kpi-label"><i class="bi bi-database"></i> Registros Evaluados</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value text-success">{{ dash.kpis.total_columnas }}</div>
+      <div class="kpi-label"><i class="bi bi-layout-three-columns"></i> Dimensiones Totales</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value text-info">{{ dash.kpis.completitud_pct }}%</div>
+      <div class="kpi-label"><i class="bi bi-patch-check"></i> Tasa de Completitud</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi-card">
+      <div class="kpi-value text-warning">{{ dash.kpis.num_numericas }} / {{ dash.kpis.num_categoricas }}</div>
+      <div class="kpi-label"><i class="bi bi-pie-chart"></i> Numéricas / Categóricas</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtros y Selectores Dinámicos -->
 <div class="card-custom mb-4 p-3 bg-light border">
-  <div class="row g-2 align-items-center">
+  <div class="row g-3 align-items-center">
     <div class="col-md-3">
-      <label class="form-label small fw-bold mb-1"><i class="bi bi-funnel"></i> Variable Eje X:</label>
+      <label class="form-label small fw-bold mb-1"><i class="bi bi-arrow-left-right text-primary"></i> Variable Eje X (Numérica):</label>
       <select class="form-select form-select-sm" id="selectVarX">
-        <option value="edad" selected>Edad</option>
-        <option value="ingreso_anual">Ingreso Anual ($)</option>
-        <option value="puntaje_credito">Puntaje Crediticio</option>
+        {% for col in dash.columnas_numericas %}
+        <option value="{{ col }}" {% if loop.first %}selected{% endif %}>{{ col }}</option>
+        {% endfor %}
       </select>
     </div>
+
     <div class="col-md-3">
-      <label class="form-label small fw-bold mb-1"><i class="bi bi-funnel"></i> Variable Eje Y:</label>
+      <label class="form-label small fw-bold mb-1"><i class="bi bi-arrow-down-up text-primary"></i> Variable Eje Y (Numérica):</label>
       <select class="form-select form-select-sm" id="selectVarY">
-        <option value="ingreso_anual" selected>Ingreso Anual ($)</option>
-        <option value="edad">Edad</option>
-        <option value="puntaje_credito">Puntaje Crediticio</option>
+        {% for col in dash.columnas_numericas %}
+        <option value="{{ col }}" {% if loop.index == 2 or (loop.first and loop.length == 1) %}selected{% endif %}>{{ col }}</option>
+        {% endfor %}
       </select>
     </div>
+
     <div class="col-md-3">
-      <label class="form-label small fw-bold mb-1"><i class="bi bi-palette"></i> Colorear por (Target):</label>
+      <label class="form-label small fw-bold mb-1"><i class="bi bi-palette text-success"></i> Segmentar / Color por:</label>
       <select class="form-select form-select-sm" id="selectColor">
-        <option value="compra_seguro" selected>Compra Seguro (Sí / No)</option>
-        <option value="estado_civil">Estado Civil</option>
+        <option value="__none__">(Monocromático - Sin Segmentar)</option>
+        {% for col in dash.columnas_categoricas %}
+        <option value="{{ col }}" {% if loop.first %}selected{% endif %}>{{ col }}</option>
+        {% endfor %}
       </select>
     </div>
-    <div class="col-md-3 text-end pt-3">
-      <button class="btn btn-sm btn-outline-secondary w-100" id="btnUpdateDash">
-        <i class="bi bi-arrow-clockwise"></i> Actualizar Gráficos
-      </button>
+
+    <div class="col-md-3">
+      <label class="form-label small fw-bold mb-1"><i class="bi bi-bar-chart-steps text-info"></i> Variable Histograma:</label>
+      <select class="form-select form-select-sm" id="selectHistVar">
+        {% for col in dash.columnas_numericas %}
+        <option value="{{ col }}" {% if loop.first %}selected{% endif %}>{{ col }}</option>
+        {% endfor %}
+      </select>
     </div>
   </div>
 </div>
@@ -53,9 +89,9 @@
     <div class="card-custom h-100">
       <div class="card-title-custom">
         <span><i class="bi bi-diagram-3-fill text-primary"></i> Dispersión Bivariada y Segmentación</span>
-        <span class="badge bg-secondary">Interactivo</span>
+        <span class="badge bg-secondary">Plotly.js Reactivo</span>
       </div>
-      <div id="scatterDashboard" style="height: 350px;"></div>
+      <div id="scatterDashboard" style="height: 380px;"></div>
     </div>
   </div>
 
@@ -66,76 +102,208 @@
         <span><i class="bi bi-bar-chart-fill text-success"></i> Distribución de Frecuencia</span>
         <span class="badge bg-secondary">Histograma</span>
       </div>
-      <div id="histDashboard" style="height: 350px;"></div>
+      <div id="histDashboard" style="height: 380px;"></div>
     </div>
   </div>
 </div>
 
-<!-- Matriz de Correlación Heatmap -->
-<div class="card-custom">
-  <div class="card-title-custom">
-    <span><i class="bi bi-grid-3x3 text-warning"></i> Matriz de Correlación de Pearson (Heatmap)</span>
-    <span class="badge bg-info-subtle text-info border">Todas las variables continuas</span>
+<!-- Matriz de Correlación Heatmap y Estadísticas Descriptivas -->
+<div class="row">
+  <div class="col-lg-7 mb-4">
+    <div class="card-custom h-100">
+      <div class="card-title-custom">
+        <span><i class="bi bi-grid-3x3 text-warning"></i> Matriz de Correlación Lineal de Pearson</span>
+        <span class="badge bg-info-subtle text-info border">Variables Continuas</span>
+      </div>
+      <div id="corrHeatmap" style="height: 320px;"></div>
+    </div>
   </div>
-  <div id="corrHeatmap" style="height: 280px;"></div>
+
+  <div class="col-lg-5 mb-4">
+    <div class="card-custom h-100">
+      <div class="card-title-custom">
+        <span><i class="bi bi-calculator text-dark"></i> Resumen Paramétrico Descriptivo</span>
+        <span class="badge bg-secondary">Estadísticos</span>
+      </div>
+      <div class="table-responsive small" style="max-height: 320px; overflow-y: auto;">
+        <table class="table table-sm table-striped table-hover align-middle mb-0">
+          <thead class="table-dark sticky-top">
+            <tr>
+              <th>Variable</th>
+              <th>Media</th>
+              <th>Mediana</th>
+              <th>Min</th>
+              <th>Max</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for col, stats in dash.estadisticas.items() %}
+            <tr>
+              <td><strong>{{ col }}</strong></td>
+              <td>{{ stats.media }}</td>
+              <td>{{ stats.mediana }}</td>
+              <td>{{ stats.min }}</td>
+              <td>{{ stats.max }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-muted">No hay variables numéricas registradas.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
   document.addEventListener("DOMContentLoaded", function() {
-    // 1. Gráfico de dispersión
-    const scatterTrace1 = {
-      x: [22, 25, 29, 34, 38, 42, 45, 52, 58, 62],
-      y: [22000, 28000, 31000, 49000, 52000, 68000, 71000, 85000, 92000, 98000],
-      mode: 'markers',
-      name: 'Compra: Sí',
-      marker: { color: '#ea580c', size: 10 }
-    };
-    const scatterTrace2 = {
-      x: [20, 23, 26, 30, 32, 35, 40, 48, 55, 60],
-      y: [18000, 21000, 24000, 32000, 30000, 35000, 41000, 45000, 50000, 52000],
-      mode: 'markers',
-      name: 'Compra: No',
-      marker: { color: '#64748b', size: 10 }
-    };
-    Plotly.newPlot('scatterDashboard', [scatterTrace1, scatterTrace2], {
-      margin: { t: 20, r: 20, b: 40, l: 50 },
-      xaxis: { title: 'Edad (Años)' },
-      yaxis: { title: 'Ingreso Anual ($)' },
-      plot_bgcolor: '#f8fafc'
-    }, {responsive: true, displayModeBar: false});
+    const dashData = {{ dash | tojson }};
+    const sample = dashData.registros_muestra || [];
 
-    // 2. Histograma
-    const histTrace = {
-      x: [22, 25, 28, 30, 32, 35, 35, 38, 40, 42, 45, 48, 50, 52, 55, 58, 60, 62],
-      type: 'histogram',
-      marker: { color: '#0284c7' }
-    };
-    Plotly.newPlot('histDashboard', [histTrace], {
-      margin: { t: 20, r: 20, b: 40, l: 40 },
-      xaxis: { title: 'Rango de Edad' },
-      yaxis: { title: 'Frecuencia' },
-      plot_bgcolor: '#f8fafc'
-    }, {responsive: true, displayModeBar: false});
+    const selectX = document.getElementById("selectVarX");
+    const selectY = document.getElementById("selectVarY");
+    const selectColor = document.getElementById("selectColor");
+    const selectHist = document.getElementById("selectHistVar");
 
-    // 3. Matriz de Correlación Heatmap
-    const heatmapTrace = {
-      z: [
-        [1.0, 0.72, 0.45, -0.15],
-        [0.72, 1.0, 0.58, -0.08],
-        [0.45, 0.58, 1.0, 0.22],
-        [-0.15, -0.08, 0.22, 1.0]
-      ],
-      x: ['Edad', 'Ingreso', 'Puntaje', 'Hijos'],
-      y: ['Edad', 'Ingreso', 'Puntaje', 'Hijos'],
-      type: 'heatmap',
-      colorscale: 'RdBu',
-      reversescale: true
-    };
-    Plotly.newPlot('corrHeatmap', [heatmapTrace], {
-      margin: { t: 20, r: 20, b: 40, l: 60 }
-    }, {responsive: true, displayModeBar: false});
+    // Paleta de colores para segmentación
+    const colorPalette = ['#ea580c', '#0284c7', '#10b981', '#8b5cf6', '#f59e0b', '#ec4899', '#64748b'];
+
+    // 1. Función para renderizar el gráfico de dispersión
+    function renderScatter() {
+      const varX = selectX ? selectX.value : null;
+      const varY = selectY ? selectY.value : null;
+      const varColor = selectColor ? selectColor.value : "__none__";
+
+      if (!varX || !varY || sample.length === 0) {
+        document.getElementById('scatterDashboard').innerHTML = `
+          <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+            <span>Se requieren al menos 2 variables numéricas para graficar dispersión.</span>
+          </div>`;
+        return;
+      }
+
+      let traces = [];
+
+      if (varColor === "__none__" || !varColor) {
+        // Monocromático
+        traces.push({
+          x: sample.map(r => r[varX]),
+          y: sample.map(r => r[varY]),
+          mode: 'markers',
+          name: 'Registros',
+          marker: { color: '#ea580c', size: 8, opacity: 0.8 }
+        });
+      } else {
+        // Segmentado por categorías
+        const groups = {};
+        sample.forEach(r => {
+          const val = r[varColor] !== null && r[varColor] !== undefined ? String(r[varColor]) : "N/A";
+          if (!groups[val]) groups[val] = { x: [], y: [] };
+          groups[val].x.push(r[varX]);
+          groups[val].y.push(r[varY]);
+        });
+
+        let idx = 0;
+        for (const [groupName, data] of Object.entries(groups)) {
+          traces.push({
+            x: data.x,
+            y: data.y,
+            mode: 'markers',
+            name: `${varColor}: ${groupName}`,
+            marker: { color: colorPalette[idx % colorPalette.length], size: 8, opacity: 0.8 }
+          });
+          idx++;
+        }
+      }
+
+      const layout = {
+        margin: { t: 25, r: 20, b: 50, l: 55 },
+        xaxis: { title: varX, zeroline: false },
+        yaxis: { title: varY, zeroline: false },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: '#f8fafc',
+        legend: { orientation: 'h', y: -0.2 }
+      };
+
+      Plotly.newPlot('scatterDashboard', traces, layout, {responsive: true, displayModeBar: false});
+    }
+
+    // 2. Función para renderizar el histograma
+    function renderHistogram() {
+      const varHist = selectHist ? selectHist.value : null;
+      if (!varHist || sample.length === 0) {
+        document.getElementById('histDashboard').innerHTML = `
+          <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+            <span>No hay variables numéricas para histograma.</span>
+          </div>`;
+        return;
+      }
+
+      const values = sample.map(r => r[varHist]).filter(v => v !== null && v !== undefined);
+
+      const trace = {
+        x: values,
+        type: 'histogram',
+        marker: { color: '#0284c7', line: { color: '#ffffff', width: 1 } },
+        opacity: 0.85
+      };
+
+      const layout = {
+        margin: { t: 25, r: 20, b: 50, l: 45 },
+        xaxis: { title: varHist },
+        yaxis: { title: 'Frecuencia' },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: '#f8fafc'
+      };
+
+      Plotly.newPlot('histDashboard', [trace], layout, {responsive: true, displayModeBar: false});
+    }
+
+    // 3. Renderizar la Matriz de Correlación (Heatmap)
+    function renderCorrelationHeatmap() {
+      const corr = dashData.matriz_correlacion;
+      if (!corr || !corr.variables || corr.variables.length < 2) {
+        document.getElementById('corrHeatmap').innerHTML = `
+          <div class="d-flex align-items-center justify-content-center h-100 text-muted">
+            <span>Se requieren al menos 2 variables numéricas para calcular la correlación de Pearson.</span>
+          </div>`;
+        return;
+      }
+
+      const trace = {
+        z: corr.valores,
+        x: corr.variables,
+        y: corr.variables,
+        type: 'heatmap',
+        colorscale: 'RdBu',
+        zmin: -1,
+        zmax: 1,
+        reversescale: true,
+        hoverongaps: false
+      };
+
+      const layout = {
+        margin: { t: 20, r: 20, b: 60, l: 70 },
+        paper_bgcolor: 'transparent'
+      };
+
+      Plotly.newPlot('corrHeatmap', [trace], layout, {responsive: true, displayModeBar: false});
+    }
+
+    // Event Listeners para reactividad en tiempo real
+    if (selectX) selectX.addEventListener("change", renderScatter);
+    if (selectY) selectY.addEventListener("change", renderScatter);
+    if (selectColor) selectColor.addEventListener("change", renderScatter);
+    if (selectHist) selectHist.addEventListener("change", renderHistogram);
+
+    // Render inicial
+    renderScatter();
+    renderHistogram();
+    renderCorrelationHeatmap();
   });
 </script>
 {% endblock %}

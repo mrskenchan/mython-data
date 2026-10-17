@@ -16,6 +16,7 @@ import shutil
 from analisis.cleaner import diagnosticar_dataset, ejecutar_limpieza
 from analisis.tree_engine import entrenar_arbol
 from analisis.association import generar_reglas_mock, minar_reglas_asociacion
+from analisis.dashboard_engine import obtener_datos_dashboard
 from analisis.csv_loader import (
     cargar_y_validar_csv,
     obtener_catalogo_datasets,
@@ -330,6 +331,8 @@ async def handle_rules(
 async def dashboard_page(request: Request):
     """Vista de Dashboard Analítico Interactivo (RF6)"""
     ctx = _obtener_contexto_base(request, "dashboard")
+    dash_data = obtener_datos_dashboard(CURRENT_DATASET.get("df"))
+    ctx["dash"] = dash_data
     return templates.TemplateResponse(request=request, name="dashboard.html", context=ctx)
 
 
