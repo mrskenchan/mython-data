@@ -100,13 +100,15 @@ def ejecutar_limpieza(df: pd.DataFrame, config: Dict[str, Any]) -> Tuple[pd.Data
 
     # 3. Tratamiento de nulos
     metodo_imputacion = config.get("imputacion_nulos", "mediana")
+    if metodo_imputacion == "drop":
+        df_clean = df_clean.dropna().copy()
     for col in df_clean.columns:
         nulos = int(df_clean[col].isnull().sum())
         if nulos > 0:
             if pd.api.types.is_numeric_dtype(df_clean[col]):
-                if metodo_imputacion == "mediana":
+                if metodo_imputacion in ("mediana", "median"):
                     val = df_clean[col].median()
-                elif metodo_imputacion == "media":
+                elif metodo_imputacion in ("media", "mean"):
                     val = df_clean[col].mean()
                 else:
                     val = 0

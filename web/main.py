@@ -65,6 +65,9 @@ CURRENT_DATASET = {
 # Estado de mensajes temporales
 FLASH_MESSAGES = {"success": None, "error": None}
 
+# Resultado de la última limpieza ejecutada (RF2)
+LAST_CLEAN_AUDIT = None
+
 
 def _obtener_contexto_base(request: Request, active_page: str) -> dict:
     """Genera el diccionario de contexto base para todas las plantillas."""
@@ -187,18 +190,17 @@ async def clean_page(request: Request):
     """Vista de Diagnóstico y Limpieza Asistida (RF2)"""
     ctx = _obtener_contexto_base(request, "clean")
     diag = diagnosticar_dataset(CURRENT_DATASET["df"])
-    
-    audit = {
-        "duplicates_removed": 18,
-        "columns_normalized": CURRENT_DATASET["columns"],
-        "outliers_clipped": 24,
-        "nulls_imputed": {
-            col: f"Nulos imputados según estrategia" for col in diag.get("columnas_con_nulos", {}).keys()
-        } if diag.get("columnas_con_nulos") else {"edad": "12 nulos imputados con Mediana"}
-    }
 
     ctx["diagnostic"] = diag
-    ctx["audit_log"] = audit
+    resultado = LAST_CLEAN_AUDIT or {}
+    ctx["cleaning_executed"] = LAST_CLEAN_AUDIT is not None
+
+    ctx["audit_log"] = {
+        "duplicates_removed": resultado.get("duplicados_removidos", 0),
+        "columns_normalized": resultado.get("columnas_normalizadas", []),
+        "outliers_clipped": resultado.get("outliers_tratados", 0),
+        "nulls_imputed": resultado.get("nulos_imputados", {})
+    }
     return templates.TemplateResponse(request=request, name="clean.html", context=ctx)
 
 
@@ -211,7 +213,7 @@ async def handle_clean(
     outlier_method: bool = Form(False)
 ):
     """Dispara el pipeline de limpieza y redirige a la vista de resultados"""
-    global CURRENT_DATASET, FLASH_MESSAGES
+    global CURRENT_DATASET, FLASH_MESSAGES, LAST_CLEAN_AUDIT
     config = {
         "normalizar_columnas": normalize_columns,
         "eliminar_duplicados": drop_duplicates,
@@ -219,6 +221,7 @@ async def handle_clean(
         "manejo_outliers": outlier_method
     }
     df_clean, audit = ejecutar_limpieza(CURRENT_DATASET["df"], config)
+    LAST_CLEAN_AUDIT = audit
     CURRENT_DATASET["df"] = df_clean
     CURRENT_DATASET["columns"] = list(df_clean.columns)
     FLASH_MESSAGES["success"] = "Pipeline de limpieza ejecutado correctamente sobre el dataset activo."
