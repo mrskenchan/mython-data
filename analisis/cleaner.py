@@ -37,6 +37,12 @@ def diagnosticar_dataset(df: pd.DataFrame) -> Dict[str, Any]:
     cols_numericas = df.select_dtypes(include=[np.number]).columns.tolist()
     outliers_detectados = 0
     for col in cols_numericas:
+        # No considerar los identificadores como valores atipicos
+        nombre = str(col).strip().lower()
+
+        if nombre == "id" or nombre.startswith("id_") or nombre.endswith("_id"):
+            continue
+        
         q1 = df[col].quantile(0.25)
         q3 = df[col].quantile(0.75)
         iqr = q3 - q1
@@ -75,22 +81,75 @@ def ejecutar_limpieza(df: pd.DataFrame, config: Dict[str, Any]) -> Tuple[pd.Data
     df_clean = df.copy()
     bitacora = {
         "duplicados_removidos": 0,
+        "filas_eliminadas_por_nulos": 0,
         "nulos_imputados": {},
         "columnas_normalizadas": [],
         "outliers_tratados": 0,
+        
     }
 
     # 1. Normalización de nombres de columnas
     if config.get("normalizar_columnas", True):
-        nombres_originales = list(df_clean.columns)
-        df_clean.columns = (
-            df_clean.columns.astype(str)
+
+        # Limpiar nombres: tildes, espacios y caracteres especiales
+        nombres_base = (
+            pd.Index(df_clean.columns).astype(str)
+            .str.normalize("NFKD")
+            .str.replace(r"[\u0300-\u036f]", "", regex=True)
             .str.strip()
             .str.lower()
-            .str.replace(" ", "_")
-            .str.replace(r"[^\w\s]", "", regex=True)
+            .str.replace(r"\s+", "_", regex=True)
+            .str.replace(r"[^\w]", "_", regex=True)
+            .str.replace(r"_+", "_", regex=True)
+            .str.strip("_")
         )
-        bitacora["columnas_normalizadas"] = list(df_clean.columns)
+
+        # Garantizar nombres unicos
+        nombres_unicos = []
+        nombres_usados = set()
+
+        for i, nombre in enumerate(nombres_base, start=1):
+            base = nombre if nombre else f"columna_{i}"
+            nuevo_nombre = base
+            contador = 2
+
+            while nuevo_nombre in nombres_usados:
+                nuevo_nombre = f"{base}_{contador}"
+                contador += 1
+
+            nombres_unicos.append(nuevo_nombre)
+            nombres_usados.add(nuevo_nombre)
+
+        df_clean.columns = nombres_unicos
+        bitacora["columnas_normalizadas"] = nombres_unicos
+
+    # Corrección automática de números almacenados como texto
+    bitacora["tipos_corregidos"] = []
+
+    columnas_texto = df_clean.select_dtypes(
+        include=["object", "string"]
+    ).columns
+
+    for col in columnas_texto:
+        serie = df_clean[col]
+        valores = serie.dropna().astype("string").str.strip()
+
+        if valores.empty:
+            continue
+
+        # Evitar modificar identificadores y códigos con ceros iniciales
+        if col.lower() in {"id", "rut", "codigo", "telefono", "codigo_postal"}:
+            continue
+
+        if valores.str.match(r"^[+-]?0\d+$").any():
+            continue
+
+        conversion = pd.to_numeric(serie, errors="coerce")
+
+        # Convertir solamente si todos los valores presentes son numéricos
+        if conversion[serie.notna()].notna().all():
+            df_clean[col] = conversion
+            bitacora["tipos_corregidos"].append(col)
 
     # 2. Eliminación de filas duplicadas
     if config.get("eliminar_duplicados", True):
@@ -101,7 +160,12 @@ def ejecutar_limpieza(df: pd.DataFrame, config: Dict[str, Any]) -> Tuple[pd.Data
     # 3. Tratamiento de nulos
     metodo_imputacion = config.get("imputacion_nulos", "mediana")
     if metodo_imputacion == "drop":
+        filas_antes = len(df_clean)
         df_clean = df_clean.dropna().copy()
+        bitacora["filas_eliminadas_por_nulos"] = int(
+            filas_antes - len(df_clean)
+        )
+
     for col in df_clean.columns:
         nulos = int(df_clean[col].isnull().sum())
         if nulos > 0:
@@ -112,6 +176,12 @@ def ejecutar_limpieza(df: pd.DataFrame, config: Dict[str, Any]) -> Tuple[pd.Data
                     val = df_clean[col].mean()
                 else:
                     val = 0
+                if pd.isna(val):
+                    bitacora["nulos_imputados"][col] = (
+                        f"0 imputados; {nulos} nulos permanecen "
+                        "(no existen valores para calcular media o mediana)"
+                    )
+                    continue
                 df_clean[col] = df_clean[col].fillna(val)
                 bitacora["nulos_imputados"][col] = f"{nulos} imputados ({metodo_imputacion}: {val:.2f})"
             else:
@@ -124,6 +194,11 @@ def ejecutar_limpieza(df: pd.DataFrame, config: Dict[str, Any]) -> Tuple[pd.Data
     if config.get("manejo_outliers", True):
         cols_num = df_clean.select_dtypes(include=[np.number]).columns
         for col in cols_num:
+            # No modificar columnas que representan identificadores
+            nombre = str(col).strip().lower()
+            # Evitar modificar identificadores
+            if nombre == "id" or nombre.startswith("id_") or nombre.endswith("_id"):
+                continue
             q1 = df_clean[col].quantile(0.25)
             q3 = df_clean[col].quantile(0.75)
             iqr = q3 - q1
