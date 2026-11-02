@@ -194,8 +194,8 @@ Para garantizar el cumplimiento de la rúbrica de evaluación (25% en Nota 1 y 1
 
 | Integrante | Rol Principal | Requerimientos Asignados |
 | :--- | :--- | :--- |
-| **Integrante 1** | Frontend, Arquitectura Web & DevOps | **RF1** (Carga CSV), **RF3** (Gestión de modelos), **RF4** (Asociación `mlxtend`), **RF5** (Informes), **RF6** (Dashboard Plotly), **RF7** (UI Orange), Servidor FastAPI y Despliegue. |
-| **Integrante 2** | Backend & Motor Científico de ML | **RF2** (Pipeline de limpieza, imputación nulos y outliers IQR con bitácora auditable) y **RF3** (Entrenamiento Scikit-Learn, métricas de evaluación, matriz de confusión y visualizador SVG del árbol). |
+| **Kenjiro Aguilera** | Frontend, Arquitectura Web & DevOps | **RF1** (Carga CSV), **RF3** (Gestión de modelos), **RF4** (Asociación `mlxtend`), **RF5** (Informes), **RF6** (Dashboard Plotly), **RF7** (UI Orange), Servidor FastAPI y Despliegue. |
+| **Felipe Ramirez** | Backend & Motor Científico de ML | **RF2** (Pipeline de limpieza, imputación nulos y outliers IQR con bitácora auditable) y **RF3** (Entrenamiento Scikit-Learn, métricas de evaluación, matriz de confusión y visualizador SVG del árbol). |
 
 ---
 
