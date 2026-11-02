@@ -104,7 +104,7 @@
         <span><i class="bi bi-clipboard-check text-success"></i> Bitácora de Auditoría (Resumen RF2)</span>
         <span class="badge bg-success-subtle text-success border">Auditoría Lista</span>
       </div>
-
+        {% if cleaning_executed %}
       <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
         <i class="bi bi-check-circle-fill fs-4"></i>
         <div>
@@ -112,6 +112,7 @@
           <div class="small">El dataset limpio se encuentra persistido y listo para modelado supervisado.</div>
         </div>
       </div>
+        {% endif %}
 
       <div class="table-responsive">
         <table class="table table-bordered small mb-3">
