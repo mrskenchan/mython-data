@@ -6,7 +6,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h3 class="fw-bold mb-1"><i class="bi bi-magic text-warning"></i> 2. Limpieza Asistida y Diagnóstico (RF2)</h3>
-    <p class="text-muted mb-0">Revisa el diagnóstico de calidad y selecciona las operaciones de limpieza a ejecutar con Python.</p>
+    <p class="text-muted mb-0 small">Escanea la calidad del dataset activo y ejecuta el pipeline de preprocesamiento asistido.</p>
   </div>
   <a href="/tree" class="btn btn-orange">
     Ir a Árbol de Decisión <i class="bi bi-arrow-right"></i>
@@ -14,29 +14,35 @@
 </div>
 
 <!-- Tarjetas KPI de Diagnóstico Automático -->
-<div class="row mb-4">
+<div class="row g-3 mb-4">
   <div class="col-md-3">
-    <div class="metric-kpi">
-      <div class="metric-val text-primary">{{ diagnostic.total_filas }}</div>
-      <div class="metric-label">Total de Filas</div>
+    <div class="kpi-card">
+      <div class="kpi-value text-primary">{{ diagnostic.total_filas }}</div>
+      <div class="kpi-label"><i class="bi bi-database"></i> Total de Filas</div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="metric-kpi" style="border-top-color: #ef4444;">
-      <div class="metric-val text-danger">{{ diagnostic.total_nulos }}</div>
-      <div class="metric-label">Valores Nulos Detectados</div>
+    <div class="kpi-card">
+      <div class="kpi-value {% if diagnostic.total_nulos > 0 %}text-danger{% else %}text-success{% endif %}">
+        {{ diagnostic.total_nulos }}
+      </div>
+      <div class="kpi-label"><i class="bi bi-exclamation-triangle"></i> Valores Nulos</div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="metric-kpi" style="border-top-color: #f59e0b;">
-      <div class="metric-val text-warning">{{ diagnostic.filas_duplicadas }}</div>
-      <div class="metric-label">Filas Duplicadas</div>
+    <div class="kpi-card">
+      <div class="kpi-value {% if diagnostic.filas_duplicadas > 0 %}text-warning{% else %}text-success{% endif %}">
+        {{ diagnostic.filas_duplicadas }}
+      </div>
+      <div class="kpi-label"><i class="bi bi-intersect"></i> Filas Duplicadas</div>
     </div>
   </div>
   <div class="col-md-3">
-    <div class="metric-kpi" style="border-top-color: #8b5cf6;">
-      <div class="metric-val text-purple" style="color: #8b5cf6;">{{ diagnostic.outliers_estimados }}</div>
-      <div class="metric-label">Outliers Estimados (IQR)</div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color: #8b5cf6;">
+        {{ diagnostic.outliers_estimados }}
+      </div>
+      <div class="kpi-label"><i class="bi bi-distribute-vertical"></i> Outliers (IQR)</div>
     </div>
   </div>
 </div>
@@ -46,52 +52,51 @@
   <div class="col-lg-6 mb-4">
     <div class="card-custom">
       <div class="card-title-custom">
-        <span><i class="bi bi-sliders"></i> Opciones de Limpieza Seleccionables</span>
-        <span class="badge bg-warning-subtle text-warning-emphasis border">Multiple-Choice</span>
+        <span><i class="bi bi-sliders text-warning"></i> Operaciones de Limpieza Asistida</span>
+        <span class="badge bg-warning-subtle text-dark border">Multiple-Choice</span>
       </div>
 
       <form action="/clean" method="post">
-        <!-- Normalización -->
+        <!-- 1. Normalización -->
         <div class="form-check form-switch p-3 bg-light rounded-3 mb-3 border">
           <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="normCols" name="normalize_columns" checked>
           <label class="form-check-label fw-bold" for="normCols">
-            Normalizar nombres de columnas
-            <span class="d-block small text-muted fw-normal">Convierte a minúsculas, reemplaza espacios por <code>_</code> y elimina tildes/caracteres especiales.</span>
+            <i class="bi bi-fonts text-primary me-1"></i> Normalizar nombres de columnas
+            <span class="d-block small text-muted fw-normal">Estandariza a minúsculas, formato snake_case y remueve tildes especiales.</span>
           </label>
         </div>
 
-        <!-- Duplicados -->
+        <!-- 2. Duplicados -->
         <div class="form-check form-switch p-3 bg-light rounded-3 mb-3 border">
           <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="dropDups" name="drop_duplicates" checked>
           <label class="form-check-label fw-bold" for="dropDups">
-            Eliminar filas duplicadas exactas
-            <span class="d-block small text-muted fw-normal">Remueve registros redundantes que puedan sesgar el entrenamiento del modelo.</span>
+            <i class="bi bi-trash3 text-danger me-1"></i> Eliminar filas duplicadas exactas
+            <span class="d-block small text-muted fw-normal">Descarta redundancias que sesguen el entrenamiento predictivo.</span>
           </label>
         </div>
 
-        <!-- Tratamiento de Nulos -->
+        <!-- 3. Tratamiento de Nulos -->
         <div class="p-3 bg-light rounded-3 mb-3 border">
-          <label class="form-label fw-bold mb-1">Estrategia de Imputación de Nulos Numéricos</label>
+          <label class="form-label fw-bold mb-1"><i class="bi bi-patch-question text-info me-1"></i> Estrategia de Imputación de Nulos</label>
           <select class="form-select form-select-sm mb-2" name="impute_strategy">
-            <option value="median" selected>Imputar por Mediana (Recomendada - Robusta ante outliers)</option>
+            <option value="median" selected>Imputar por Mediana (Robusta ante outliers)</option>
             <option value="mean">Imputar por Media Aritmética</option>
-            <option value="zero">Reemplazar por Cero (0)</option>
             <option value="drop">Eliminar filas con valores nulos</option>
           </select>
-          <span class="small text-muted d-block">Las variables categóricas se imputarán automáticamente por su Moda o valor 'Desconocido'.</span>
+          <span class="small text-muted d-block"><i class="bi bi-info-circle me-1"></i>Las variables categóricas se imputan por su Moda o 'Desconocido'.</span>
         </div>
 
-        <!-- Manejo de Outliers -->
+        <!-- 4. Manejo de Outliers -->
         <div class="form-check form-switch p-3 bg-light rounded-3 mb-3 border">
           <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="iqrOutliers" name="outlier_method" checked>
           <label class="form-check-label fw-bold" for="iqrOutliers">
-            Manejo de Outliers con Rango Intercuartílico (IQR)
-            <span class="d-block small text-muted fw-normal">Aplica recorte (*winsorization*) en los límites $[Q_1 - 1.5 \times \text{IQR}, Q_3 + 1.5 \times \text{IQR}]$ sin perder filas.</span>
+            <i class="bi bi-rulers text-success me-1"></i> Tratamiento de Outliers (IQR Winsorization)
+            <span class="d-block small text-muted fw-normal">Ajusta valores en colas extremas $[Q_1 - 1.5 \times IQR, Q_3 + 1.5 \times IQR]$ sin descartar registros.</span>
           </label>
         </div>
 
         <button type="submit" class="btn btn-orange w-100 py-2 fw-bold">
-          <i class="bi bi-play-circle-fill"></i> Ejecutar Pipeline de Limpieza Python
+          <i class="bi bi-play-circle-fill me-1"></i> Ejecutar Limpieza en Dataset Activo
         </button>
       </form>
     </div>
@@ -101,47 +106,62 @@
   <div class="col-lg-6 mb-4">
     <div class="card-custom">
       <div class="card-title-custom">
-        <span><i class="bi bi-clipboard-check text-success"></i> Bitácora de Auditoría (Resumen RF2)</span>
-        <span class="badge bg-success-subtle text-success border">Auditoría Lista</span>
-      </div>
+        <span><i class="bi bi-clipboard-check text-success"></i> Bitácora de Auditoría (RF2)</span>
         {% if cleaning_executed %}
+        <span class="badge bg-success-subtle text-success border">Ejecutado</span>
+        {% else %}
+        <span class="badge bg-secondary-subtle text-secondary border">Esperando Ejecución</span>
+        {% endif %}
+      </div>
+
+      {% if cleaning_executed %}
       <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
         <i class="bi bi-check-circle-fill fs-4"></i>
         <div>
-          <strong>¡Limpieza completada con éxito!</strong>
-          <div class="small">El dataset limpio se encuentra persistido y listo para modelado supervisado.</div>
+          <strong>¡Pipeline de limpieza ejecutado exitosamente!</strong>
+          <div class="small">El dataset limpio se encuentra persistido en memoria y listo para modelado.</div>
         </div>
       </div>
-        {% endif %}
 
       <div class="table-responsive">
-        <table class="table table-bordered small mb-3">
+        <table class="table table-sm table-bordered small mb-3">
           <tbody>
             <tr>
-              <th class="bg-light w-50">Duplicados Eliminados:</th>
+              <th class="bg-light w-50"><i class="bi bi-trash me-1 text-danger"></i> Duplicados Eliminados:</th>
               <td><span class="badge bg-danger">{{ audit_log.duplicates_removed }} filas</span></td>
             </tr>
             <tr>
-              <th class="bg-light">Columnas Normalizadas:</th>
-              <td><code>{{ audit_log.columns_normalized|length }} columnas</code> convertidas a snake_case</td>
+              <th class="bg-light"><i class="bi bi-fonts me-1 text-primary"></i> Columnas Normalizadas:</th>
+              <td><code>{{ audit_log.columns_normalized|length }} columnas</code> estandarizadas</td>
             </tr>
             <tr>
-              <th class="bg-light">Outliers Recortados (IQR):</th>
-              <td><span class="badge bg-purple" style="background:#8b5cf6;">{{ audit_log.outliers_clipped }} valores</span> ajustados a límites válidos</td>
+              <th class="bg-light"><i class="bi bi-rulers me-1 text-purple" style="color:#8b5cf6;"></i> Outliers Tratados (IQR):</th>
+              <td><span class="badge" style="background:#8b5cf6;">{{ audit_log.outliers_clipped }} valores</span> ajustados a límites válidos</td>
             </tr>
             <tr>
-              <th class="bg-light">Nulos Imputados por Columna:</th>
+              <th class="bg-light"><i class="bi bi-patch-question me-1 text-info"></i> Nulos Imputados:</th>
               <td>
+                {% if audit_log.nulls_imputed %}
                 <ul class="mb-0 ps-3">
                   {% for col, desc in audit_log.nulls_imputed.items() %}
                   <li><strong>{{ col }}:</strong> {{ desc }}</li>
                   {% endfor %}
                 </ul>
+                {% else %}
+                <span class="text-muted">Sin valores nulos que requirieran imputación.</span>
+                {% endif %}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+      {% else %}
+      <div class="p-4 text-center text-muted border rounded bg-light mb-3">
+        <i class="bi bi-clipboard-data fs-1 d-block mb-2 text-secondary"></i>
+        <h6 class="fw-bold mb-1">Sin auditoría pendiente</h6>
+        <p class="small mb-0">Selecciona las operaciones a la izquierda y presiona <strong>Ejecutar Limpieza</strong> para generar el registro auditable.</p>
+      </div>
+      {% endif %}
 
       <div class="d-flex justify-content-end">
         <a href="/tree" class="btn btn-orange">

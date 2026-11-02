@@ -185,6 +185,41 @@ async def delete_dataset(request: Request, dataset_id: str):
     return RedirectResponse(url="/upload", status_code=303)
 
 
+@app.get("/sample/load/{sample_name}", response_class=HTMLResponse)
+async def load_sample_dataset(request: Request, sample_name: str):
+    """Carga de forma inmediata uno de los datasets de demostración preconfigurados."""
+    global CURRENT_DATASET, FLASH_MESSAGES
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    filename = f"{sample_name}.csv"
+    sample_path = os.path.join(base_dir, "sample_data", filename)
+    
+    if not os.path.exists(sample_path):
+        FLASH_MESSAGES["error"] = f"El dataset de muestra '{filename}' no fue encontrado en el servidor."
+        return RedirectResponse(url="/upload", status_code=303)
+        
+    try:
+        with open(sample_path, "rb") as f:
+            file_bytes = f.read()
+            
+        res = cargar_y_validar_csv(file_bytes, filename)
+        if res["exito"]:
+            CURRENT_DATASET = {
+                **res["metadata"],
+                "df": res["df"],
+                "column_types": res["column_types"]
+            }
+            FLASH_MESSAGES["success"] = (
+                f"¡Dataset de muestra '{filename}' cargado y activado con éxito! "
+                f"({res['metadata']['row_count']} filas, {res['metadata']['col_count']} columnas listas)."
+            )
+        else:
+            FLASH_MESSAGES["error"] = res["error"]
+    except Exception as e:
+        FLASH_MESSAGES["error"] = f"Error al cargar el dataset de muestra: {str(e)}"
+        
+    return RedirectResponse(url="/upload", status_code=303)
+
+
 @app.get("/clean", response_class=HTMLResponse)
 async def clean_page(request: Request):
     """Vista de Diagnóstico y Limpieza Asistida (RF2)"""

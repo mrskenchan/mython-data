@@ -6,19 +6,84 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
     <h3 class="fw-bold mb-1"><i class="bi bi-cloud-arrow-up-fill text-primary"></i> 1. Carga de Datos y Previsualización (RF1)</h3>
-    <p class="text-muted mb-0">Sube cualquier archivo CSV para validar su formato, detectar codificación y separador, y previsualizar sus columnas.</p>
+    <p class="text-muted mb-0 small">Sube cualquier archivo CSV para validar formato, codificación y separador, o prueba los datasets de muestra.</p>
   </div>
   <a href="/clean" class="btn btn-orange">
-    Ir a Limpieza & Diagnóstico <i class="bi bi-arrow-right"></i>
+    Continuar a Limpieza <i class="bi bi-arrow-right"></i>
   </a>
 </div>
 
+<!-- Barra de Datasets de Muestra para Evaluación Rápida -->
+<div class="card-custom mb-4 border-primary-subtle bg-light">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-stars text-warning fs-4"></i>
+      <h6 class="fw-bold mb-0">Datasets de Muestra Listos para Evaluación Rápida</h6>
+      <span class="badge bg-primary-subtle text-primary border">1-Clic</span>
+    </div>
+    <span class="text-muted small">Haz clic para cargar y activar instantáneamente</span>
+  </div>
+
+  <div class="row g-3">
+    <!-- Muestra 1: Telecom Churn -->
+    <div class="col-md-4">
+      <div class="sample-card">
+        <div>
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge bg-primary-subtle text-primary border"><i class="bi bi-phone"></i> Telecom</span>
+            <span class="text-muted small">40 filas &bull; 9 cols</span>
+          </div>
+          <h6 class="fw-bold mb-1 text-dark">telecom_churn.csv</h6>
+          <p class="text-muted small mb-3">Cancelación de clientes, consumo en GB y reclamos. Ideal para <strong>Árbol de Decisión</strong>.</p>
+        </div>
+        <a href="/sample/load/telecom_churn" class="btn btn-sm btn-outline-primary w-100 fw-bold">
+          <i class="bi bi-lightning-charge-fill me-1"></i> Cargar Telecom Churn
+        </a>
+      </div>
+    </div>
+
+    <!-- Muestra 2: Riesgo Crédito -->
+    <div class="col-md-4">
+      <div class="sample-card">
+        <div>
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge bg-success-subtle text-success border"><i class="bi bi-cash-coin"></i> Banca</span>
+            <span class="text-muted small">35 filas &bull; 8 cols</span>
+          </div>
+          <h6 class="fw-bold mb-1 text-dark">riesgo_credito.csv</h6>
+          <p class="text-muted small mb-3">Solicitudes de crédito, ingresos anuales y scoring. Ideal para <strong>Dashboard y Correlación</strong>.</p>
+        </div>
+        <a href="/sample/load/riesgo_credito" class="btn btn-sm btn-outline-success w-100 fw-bold">
+          <i class="bi bi-lightning-charge-fill me-1"></i> Cargar Riesgo Crédito
+        </a>
+      </div>
+    </div>
+
+    <!-- Muestra 3: Canasta Supermercado -->
+    <div class="col-md-4">
+      <div class="sample-card">
+        <div>
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge bg-warning-subtle text-dark border"><i class="bi bi-basket3"></i> Retail</span>
+            <span class="text-muted small">30 tickets &bull; 11 cols</span>
+          </div>
+          <h6 class="fw-bold mb-1 text-dark">canasta_supermercado.csv</h6>
+          <p class="text-muted small mb-3">Tickets de compra de alimentos y bebidas. Ideal para <strong>Reglas de Asociación</strong>.</p>
+        </div>
+        <a href="/sample/load/canasta_supermercado" class="btn btn-sm btn-outline-warning w-100 fw-bold text-dark">
+          <i class="bi bi-lightning-charge-fill me-1"></i> Cargar Canasta Retail
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="row">
-  <!-- Zona de Carga -->
+  <!-- Zona de Carga Personalizada -->
   <div class="col-lg-5 mb-4">
     <div class="card-custom">
       <div class="card-title-custom">
-        <span><i class="bi bi-upload"></i> Subir Archivo CSV</span>
+        <span><i class="bi bi-upload"></i> Subir Archivo CSV Propio</span>
         <span class="badge bg-primary-subtle text-primary border">RF1 Oficial</span>
       </div>
 
@@ -26,7 +91,7 @@
         <div class="dropzone" id="csvDropzone">
           <i class="bi bi-filetype-csv dropzone-icon"></i>
           <h6 class="fw-bold mb-1">Arrastra tu archivo CSV aquí</h6>
-          <p class="text-muted small mb-0">o haz clic para examinar archivos (Límite: 25 MB)</p>
+          <p class="text-muted small mb-0">o haz clic para examinar (Límite: 25 MB)</p>
           <input type="file" id="csvFileInput" name="file" accept=".csv" class="d-none">
         </div>
 
@@ -37,7 +102,7 @@
               <strong id="selectedFileName">archivo.csv</strong>
               <span id="selectedFileSize" class="badge bg-secondary">0 KB</span>
             </div>
-            <div class="small text-muted">Listo para procesar y validar</div>
+            <div class="small text-muted">Archivo preparado para validación</div>
           </div>
         </div>
 
@@ -58,25 +123,25 @@
     <div class="card-custom">
       <div class="card-title-custom">
         <span><i class="bi bi-patch-check-fill text-success"></i> Resultado de Validación (RF1)</span>
-        <span class="badge bg-success">100% Válido</span>
+        <span class="badge bg-success-subtle text-success border">100% Válido</span>
       </div>
       <div class="table-responsive">
         <table class="table table-sm table-bordered small mb-0">
           <tbody>
             <tr>
-              <th class="bg-light w-50">Nombre de Archivo:</th>
+              <th class="bg-light w-50"><i class="bi bi-file-earmark-text me-1 text-muted"></i> Archivo:</th>
               <td><strong>{{ active_dataset.filename }}</strong></td>
             </tr>
             <tr>
-              <th class="bg-light">Tamaño del Archivo:</th>
+              <th class="bg-light"><i class="bi bi-hdd me-1 text-muted"></i> Tamaño:</th>
               <td>{{ active_dataset.filesize_kb }} KB ({{ active_dataset.filesize_mb }} MB)</td>
             </tr>
             <tr>
-              <th class="bg-light">Codificación Detectada:</th>
+              <th class="bg-light"><i class="bi bi-code-square me-1 text-muted"></i> Codificación:</th>
               <td><span class="badge bg-primary-subtle text-primary border">{{ active_dataset.encoding|upper }}</span></td>
             </tr>
             <tr>
-              <th class="bg-light">Separador Inferido:</th>
+              <th class="bg-light"><i class="bi bi-distribute-vertical me-1 text-muted"></i> Separador:</th>
               <td>
                 <span class="badge bg-secondary-subtle text-dark border">
                   {% if active_dataset.separator == ',' %}Coma ( , )
@@ -87,8 +152,8 @@
               </td>
             </tr>
             <tr>
-              <th class="bg-light">Dimensiones Totales:</th>
-              <td>{{ active_dataset.row_count }} registros &times; {{ active_dataset.col_count }} columnas</td>
+              <th class="bg-light"><i class="bi bi-grid-3x3 me-1 text-muted"></i> Dimensiones:</th>
+              <td><strong>{{ active_dataset.row_count }}</strong> filas &times; <strong>{{ active_dataset.col_count }}</strong> columnas</td>
             </tr>
           </tbody>
         </table>
@@ -101,12 +166,28 @@
       <div class="card-title-custom">
         <span><i class="bi bi-shield-check text-success"></i> Reglas de Validación Automática</span>
       </div>
-      <ul class="list-unstyled mb-0 small text-muted">
-        <li class="mb-2"><i class="bi bi-check2 text-success me-2"></i><strong>Formato:</strong> Extensión estricta <code>.csv</code> y MIME compatible.</li>
-        <li class="mb-2"><i class="bi bi-check2 text-success me-2"></i><strong>Codificación:</strong> Detección con <code>chardet</code> (UTF-8, Latin-1, ISO).</li>
-        <li class="mb-2"><i class="bi bi-check2 text-success me-2"></i><strong>Separador:</strong> Inferencia con <code>csv.Sniffer</code> (coma, punto y coma, tab).</li>
-        <li><i class="bi bi-check2 text-success me-2"></i><strong>Almacenamiento:</strong> Versión cruda persistida en <code>storage/datasets/</code>.</li>
-      </ul>
+      <div class="row g-2 small text-muted">
+        <div class="col-6">
+          <div class="p-2 border rounded bg-light">
+            <i class="bi bi-check2 text-success me-1"></i><strong>Formato:</strong> <code>.csv</code>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="p-2 border rounded bg-light">
+            <i class="bi bi-check2 text-success me-1"></i><strong>Detección:</strong> <code>chardet</code>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="p-2 border rounded bg-light">
+            <i class="bi bi-check2 text-success me-1"></i><strong>Separador:</strong> <code>Sniffer</code>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="p-2 border rounded bg-light">
+            <i class="bi bi-check2 text-success me-1"></i><strong>Almacén:</strong> <code>storage/</code>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -119,7 +200,7 @@
           <span class="badge bg-secondary" id="previewCountBadge">{{ preview_data|length }} mostrados</span>
         </div>
         <div class="d-flex align-items-center gap-2">
-          <label class="small text-muted mb-0">Mostrar:</label>
+          <label class="small text-muted mb-0">Filas:</label>
           <select class="form-select form-select-sm py-0" style="width: 75px;" id="rowsPerPageSelect">
             <option value="10" selected>10</option>
             <option value="25">25</option>

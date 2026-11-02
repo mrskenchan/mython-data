@@ -1,0 +1,41 @@
+id_cliente,edad,genero,antiguedad_meses,plan,consumo_datos_gb,reclamos_soporte,cobro_mensual,cancelo
+1001,34,Femenino,12,Prepago,15.4,1,18500,No
+1002,45,Masculino,36,Pospago Control,24.8,0,29990,No
+1003,23,Femenino,4,Prepago,8.2,3,15000,Si
+1004,58,Masculino,48,Pospago Libre,45.0,0,45990,No
+1005,29,Femenino,8,Prepago,12.1,2,17500,Si
+1006,31,Masculino,18,Pospago Control,30.5,1,28990,No
+1007,67,Femenino,60,Pospago Libre,18.0,0,39990,No
+1008,22,Masculino,2,Prepago,5.4,4,12000,Si
+1009,41,Femenino,24,Pospago Control,28.9,0,31000,No
+1010,50,Masculino,14,Pospago Libre,52.1,2,49990,No
+1011,27,Femenino,6,Prepago,9.8,2,16000,Si
+1012,38,Masculino,42,Pospago Libre,38.2,1,42000,No
+1013,62,Femenino,50,Pospago Control,14.5,0,25000,No
+1014,19,Masculino,1,Prepago,4.2,3,11500,Si
+1015,44,Femenino,30,Pospago Control,26.7,1,29990,No
+1016,33,Masculino,15,Pospago Libre,60.4,1,54000,No
+1017,55,Femenino,22,Pospago Control,21.0,0,27500,No
+1018,24,Masculino,5,Prepago,11.0,3,19000,Si
+1019,48,Femenino,38,Pospago Libre,40.1,0,44990,No
+1020,36,Masculino,10,Prepago,14.0,2,18500,Si
+1021,28,Femenino,16,Pospago Control,29.4,0,32000,No
+1022,52,Masculino,45,Pospago Libre,55.0,0,51000,No
+1023,30,Femenino,7,Prepago,10.5,3,17000,Si
+1024,43,Masculino,28,Pospago Control,25.3,1,29000,No
+1025,65,Femenino,55,Pospago Libre,19.5,0,38000,No
+1026,21,Masculino,3,Prepago,7.8,4,14500,Si
+1027,39,Femenino,20,Pospago Control,31.2,1,33500,No
+1028,49,Masculino,34,Pospago Libre,48.0,0,47000,No
+1029,26,Femenino,9,Prepago,13.2,2,18000,Si
+1030,35,Masculino,26,Pospago Control,27.0,0,30500,No
+1031,59,Femenino,52,Pospago Libre,36.5,1,43000,No
+1032,25,Masculino,4,Prepago,6.9,3,13000,Si
+1033,42,Femenino,32,Pospago Control,24.0,0,28500,No
+1034,47,Masculino,18,Pospago Libre,58.3,2,53000,No
+1035,32,Femenino,11,Prepago,12.5,2,17500,Si
+1036,54,Masculino,40,Pospago Control,23.1,0,29000,No
+1037,61,Femenino,48,Pospago Libre,20.5,0,40000,No
+1038,20,Masculino,2,Prepago,5.0,4,12500,Si
+1039,46,Femenino,25,Pospago Control,28.0,1,31500,No
+1040,37,Masculino,14,Pospago Libre,50.2,1,48500,No

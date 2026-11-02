@@ -42,6 +42,7 @@ storage/models/*
 uploads/
 !uploads/.gitkeep
 *.csv
+!sample_data/*.csv
 *.parquet
 *.joblib
 *.pkl

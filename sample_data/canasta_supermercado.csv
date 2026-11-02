@@ -1,0 +1,31 @@
+id_ticket,sucursal,total_compra,medio_pago,pan,leche,queso,cafe,galletas,cerveza,snacks
+5001,Santiago Centro,12450,Tarjeta Debito,Si,Si,Si,No,No,No,No
+5002,Providencia,8900,Efectivo,Si,No,No,Si,Si,No,No
+5003,Las Condes,21500,Tarjeta Credito,No,No,Si,No,No,Si,Si
+5004,Maipu,6500,Transferencia,Si,Si,No,No,Si,No,No
+5005,La Florida,18200,Tarjeta Debito,No,No,No,Si,Si,Si,Si
+5006,Santiago Centro,14300,Tarjeta Debito,Si,Si,Si,No,No,No,No
+5007,Providencia,11200,Tarjeta Credito,No,Si,Si,Si,No,No,No
+5008,Las Condes,25800,Tarjeta Credito,No,No,Si,No,No,Si,Si
+5009,Maipu,7800,Efectivo,Si,Si,No,No,Si,No,No
+5010,La Florida,19400,Tarjeta Debito,No,No,No,Si,Si,Si,Si
+5011,Santiago Centro,13500,Efectivo,Si,Si,Si,No,No,No,No
+5012,Providencia,9400,Tarjeta Debito,Si,No,No,Si,Si,No,No
+5013,Las Condes,28000,Tarjeta Credito,No,No,Si,No,No,Si,Si
+5014,Maipu,8200,Tarjeta Debito,Si,Si,No,No,Si,No,No
+5015,La Florida,16900,Efectivo,No,No,No,Si,Si,Si,Si
+5016,Santiago Centro,15200,Tarjeta Credito,Si,Si,Si,No,No,No,No
+5017,Providencia,10800,Tarjeta Debito,No,Si,Si,Si,No,No,No
+5018,Las Condes,23400,Tarjeta Credito,No,No,Si,No,No,Si,Si
+5019,Maipu,6900,Efectivo,Si,Si,No,No,Si,No,No
+5020,La Florida,17800,Tarjeta Debito,No,No,No,Si,Si,Si,Si
+5021,Santiago Centro,12900,Tarjeta Debito,Si,Si,Si,No,No,No,No
+5022,Providencia,9100,Efectivo,Si,No,No,Si,Si,No,No
+5023,Las Condes,26500,Tarjeta Credito,No,No,Si,No,No,Si,Si
+5024,Maipu,7400,Transferencia,Si,Si,No,No,Si,No,No
+5025,La Florida,20100,Tarjeta Debito,No,No,No,Si,Si,Si,Si
+5026,Santiago Centro,14100,Tarjeta Debito,Si,Si,Si,No,No,No,No
+5027,Providencia,11600,Tarjeta Credito,No,Si,Si,Si,No,No,No
+5028,Las Condes,24900,Tarjeta Credito,No,No,Si,No,No,Si,Si
+5029,Maipu,8100,Efectivo,Si,Si,No,No,Si,No,No
+5030,La Florida,18600,Tarjeta Debito,No,No,No,Si,Si,Si,Si
