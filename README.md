@@ -151,6 +151,12 @@ uvicorn web.main:app --reload --host 127.0.0.1 --port 8000
 ```
 Abre tu navegador en [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
+### 6. Ejecutar la Suite de Pruebas Automatizadas
+```bash
+python -m unittest discover tests
+```
+El repositorio cuenta con **32 pruebas automatizadas** que cubren el pipeline de ingesta CSV, diagnóstico y limpieza, entrenamiento de árboles Scikit-Learn, minería de reglas FP-Growth y ciclo de vida de los controladores HTTP.
+
 ---
 
 ## 🌐 Despliegue en Producción (DirectAdmin / aerys.cl)
