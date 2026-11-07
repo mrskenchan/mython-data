@@ -5,6 +5,8 @@ Punto de entrada de la aplicación web. Orquesta el ruteo hacia las plantillas
 Jinja2, la entrega de archivos estáticos y la conexión con la capa analítica.
 """
 
+from pyexpat import features
+
 from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -268,7 +270,7 @@ async def tree_page(request: Request):
     """Vista de Árbol de Decisión (RF3)"""
     ctx = _obtener_contexto_base(request, "tree")
     mock_tree = entrenar_arbol(
-        df=None,
+        df=CURRENT_DATASET["df"],
         target="compra_seguro",
         features=["edad", "ingreso_anual", "hijos", "estado_civil"],
         max_depth=5,
@@ -285,21 +287,26 @@ async def tree_page(request: Request):
 async def handle_tree(
     request: Request,
     target_column: str = Form("compra_seguro"),
+    features: list[str] = Form([]),
     max_depth: int = Form(5),
+    test_size: int = Form(25),
     criterion: str = Form("gini")
 ):
     """Entrena o re-calcula el árbol con los parámetros seleccionados"""
     ctx = _obtener_contexto_base(request, "tree")
     tree_result = entrenar_arbol(
-        df=None,
+        df=CURRENT_DATASET["df"],
         target=target_column,
-        features=[c for c in CURRENT_DATASET["columns"] if c != target_column],
+        features=features,
         max_depth=max_depth,
-        criterion=criterion
+        criterion=criterion,
+        test_size=test_size / 100
     )
     ctx["available_columns"] = CURRENT_DATASET["columns"]
     ctx["selected_target"] = target_column
+    ctx["selected_features"] = features
     ctx["current_depth"] = max_depth
+    ctx["current_test_size"] = test_size
     ctx["model_result"] = tree_result
     return templates.TemplateResponse(request=request, name="tree.html", context=ctx)
 

@@ -62,7 +62,7 @@
             {% for col in available_columns %}
             {% if col != selected_target %}
             <div class="form-check form-check-inline small me-2 mb-1">
-              <input class="form-check-input" type="checkbox" name="features" value="{{ col }}" id="feat_{{ col }}" checked>
+              <input class="form-check-input" type="checkbox" name="features" value="{{ col }}" id="feat_{{ col }}" {% if selected_features is not defined or col in selected_features %}checked{% endif %}>
               <label class="form-check-label" for="feat_{{ col }}">{{ col }}</label>
             </div>
             {% endif %}
@@ -96,9 +96,9 @@
         <div class="mb-3">
           <div class="d-flex justify-content-between">
             <label class="form-label fw-bold small"><i class="bi bi-pie-chart-fill text-primary me-1"></i> Partición Test / Train</label>
-            <span class="badge bg-secondary" id="labelSplit">25% Test</span>
+            <span class="badge bg-secondary" id="labelSplit">{{ current_test_size|default(25) }}% Test</span>
           </div>
-          <input type="range" class="form-range form-range-reactive" min="10" max="40" step="5" value="25" 
+          <input type="range" class="form-range form-range-reactive" min="10" max="40" step="5" value="{{ current_test_size|default(25) }}" 
                  name="test_size" data-target-label="labelSplit">
         </div>
 
@@ -146,25 +146,25 @@
     <div class="row g-2 mb-3">
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-value text-primary">{{ "%.1f"|format(model_result.metrics.accuracy * 100) }}%</div>
+          <div class="kpi-value text-primary">{{ "%.1f"|format(model_result.accuracy * 100) }}%</div>
           <div class="kpi-label"><i class="bi bi-patch-check"></i> Exactitud</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-value text-success">{{ "%.1f"|format(model_result.metrics.precision * 100) }}%</div>
+          <div class="kpi-value text-success">{{ "%.1f"|format(model_result.precision * 100) }}%</div>
           <div class="kpi-label"><i class="bi bi-bullseye"></i> Precisión</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-value text-warning">{{ "%.1f"|format(model_result.metrics.recall * 100) }}%</div>
+          <div class="kpi-value text-warning">{{ "%.1f"|format(model_result.recall * 100) }}%</div>
           <div class="kpi-label"><i class="bi bi-activity"></i> Sensibilidad</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="kpi-card">
-          <div class="kpi-value" style="color: #8b5cf6;">{{ "%.1f"|format(model_result.metrics.f1_score * 100) }}%</div>
+          <div class="kpi-value" style="color: #8b5cf6;">{{ "%.1f"|format(model_result.f1_score * 100) }}%</div>
           <div class="kpi-label"><i class="bi bi-award"></i> F1-Score</div>
         </div>
       </div>
@@ -204,13 +204,13 @@
             <tbody>
               <tr>
                 <th class="table-light">Clase 0</th>
-                <td class="bg-success-subtle fw-bold text-success">{{ model_result.confusion_matrix.matrix[0][0] }} (TN)</td>
-                <td class="bg-danger-subtle text-danger">{{ model_result.confusion_matrix.matrix[0][1] }} (FP)</td>
+                <td class="bg-success-subtle fw-bold text-success">{{ model_result.confusion_matrix[0][0] }} (TN)</td>
+                <td class="bg-danger-subtle text-danger">{{ model_result.confusion_matrix[0][1] }} (FP)</td>
               </tr>
               <tr>
                 <th class="table-light">Clase 1</th>
-                <td class="bg-danger-subtle text-danger">{{ model_result.confusion_matrix.matrix[1][0] }} (FN)</td>
-                <td class="bg-success-subtle fw-bold text-success">{{ model_result.confusion_matrix.matrix[1][1] }} (TP)</td>
+                <td class="bg-danger-subtle text-danger">{{ model_result.confusion_matrix[1][0] }} (FN)</td>
+                <td class="bg-success-subtle fw-bold text-success">{{ model_result.confusion_matrix[1][1] }} (TP)</td>
               </tr>
             </tbody>
           </table>
@@ -223,14 +223,14 @@
             <span><i class="bi bi-bar-chart-fill text-info"></i> Importancia de Variables</span>
             <span class="badge bg-info-subtle text-info border">Pesos Relativos</span>
           </div>
-          {% for item in model_result.feature_importance %}
+         {% for nombre, importancia in model_result.importancia_variables.items() %}
           <div class="mb-2 small">
             <div class="d-flex justify-content-between mb-1">
-              <span>{{ item.feature }}</span>
-              <strong class="text-primary">{{ "%.0f"|format(item.importance * 100) }}%</strong>
+              <span>{{ nombre }}</span>
+              <strong class="text-primary">{{ "%.0f"|format(importancia * 100) }}%</strong>
             </div>
             <div class="progress" style="height: 6px;">
-              <div class="progress-bar bg-primary" role="progressbar" style="width: {{ item.importance * 100 }}%"></div>
+              <div class="progress-bar bg-primary" role="progressbar" style="width:{{ importancia * 100 }}%"></div>  
             </div>
           </div>
           {% endfor %}
@@ -239,4 +239,4 @@
     </div>
   </div>
 </div>
-{% endblock %}
+  {% endblock %}
