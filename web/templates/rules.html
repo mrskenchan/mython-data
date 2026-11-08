@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Reglas de Asociación — OrangeWeb{% endblock %}
+{% block title %}Reglas de Asociación — Mython App{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -12,6 +12,9 @@
     Ir a Dashboard Analítico <i class="bi bi-arrow-right"></i>
   </a>
 </div>
+
+<!-- Banner de Contexto de Dataset Activo -->
+{% include "components/dataset_banner.html" %}
 
 {% if aviso %}
 <div class="alert alert-info alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
@@ -262,7 +265,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.setAttribute("href", url);
-        a.setAttribute("download", "reglas_asociacion_orangeweb.csv");
+        a.setAttribute("download", "reglas_asociacion_mython.csv");
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

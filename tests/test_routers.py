@@ -33,7 +33,7 @@ class TestWebRouters(unittest.TestCase):
         response = self.client.get("/upload")
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/html", response.headers["content-type"])
-        self.assertIn("OrangeWeb", response.text)
+        self.assertIn("Mython App", response.text)
         self.assertIn("Carga de Datos", response.text)
 
     def test_load_sample_dataset(self):

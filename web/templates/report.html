@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Informe Ejecutivo — OrangeWeb{% endblock %}
+{% block title %}Informe Ejecutivo — Mython App{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4 no-print">
@@ -18,13 +18,18 @@
   </div>
 </div>
 
+<!-- Banner de Contexto de Dataset Activo (no-print) -->
+<div class="no-print">
+  {% include "components/dataset_banner.html" %}
+</div>
+
 <div class="card-custom border shadow-sm p-4 bg-white" id="reportContent">
   <!-- Cabecera del Dossier -->
   <div class="d-flex justify-content-between align-items-center pb-3 mb-4 border-bottom">
     <div>
       <div class="badge bg-warning-subtle text-warning-emphasis mb-1">Informe Técnico de Minería de Datos</div>
       <h4 class="fw-bold mb-0">Dossier de Resultados y Hallazgos Analíticos</h4>
-      <span class="text-muted small">Generado automáticamente por la plataforma OrangeWeb</span>
+      <span class="text-muted small">Generado automáticamente por la plataforma Mython App</span>
     </div>
     <div class="text-end small">
       <div><strong>Fecha:</strong> {{ dossier.fecha }}</div>

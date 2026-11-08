@@ -85,7 +85,8 @@ def ejecutar_limpieza(df: pd.DataFrame, config: Dict[str, Any]) -> Tuple[pd.Data
         "nulos_imputados": {},
         "columnas_normalizadas": [],
         "outliers_tratados": 0,
-        
+        "ordenamiento_aplicado": None,
+        "advertencias": [],
     }
 
     # 1. Normalización de nombres de columnas
@@ -159,20 +160,41 @@ def ejecutar_limpieza(df: pd.DataFrame, config: Dict[str, Any]) -> Tuple[pd.Data
 
     # 3. Tratamiento de nulos
     metodo_imputacion = config.get("imputacion_nulos", "mediana")
-    if metodo_imputacion == "drop":
+    if metodo_imputacion in ("drop", "eliminar"): 
         filas_antes = len(df_clean)
-        df_clean = df_clean.dropna().copy()
-        bitacora["filas_eliminadas_por_nulos"] = int(
-            filas_antes - len(df_clean)
-        )
+        # Salvaguarda: Verificar si dropna() eliminaría todas las filas o > 75% del dataset
+        candidato = df_clean.dropna()
+        if len(candidato) == 0 or len(candidato) < max(5, int(filas_antes * 0.20)):
+            # Identificar columnas con alta tasa de nulos (campos opcionales con > 40% nulos)
+            cols_opcionales = [c for c in df_clean.columns if df_clean[c].isnull().mean() > 0.40]
+            cols_esenciales = [c for c in df_clean.columns if c not in cols_opcionales]
+            candidato_esencial = df_clean.dropna(subset=cols_esenciales) if cols_esenciales else pd.DataFrame()
+            if len(candidato_esencial) > 0 and len(candidato_esencial) >= max(5, int(filas_antes * 0.15)):
+                df_clean = candidato_esencial.copy()
+                bitacora["filas_eliminadas_por_nulos"] = int(filas_antes - len(df_clean))
+                bitacora["advertencias"].append(
+                    f"Protección preventiva: Se descartaron {bitacora['filas_eliminadas_por_nulos']} filas con nulos en variables clave. "
+                    f"Se conservaron {len(df_clean)} filas omitiendo del descarte {len(cols_opcionales)} columnas con alta tasa de valores opcionales."
+                )
+            else:
+                # Si aun así queda vacío, no eliminar ninguna fila y preservar el dataset intacto
+                bitacora["filas_eliminadas_por_nulos"] = 0
+                bitacora["advertencias"].append(
+                    "Protección de datos activada: Eliminar filas con nulos habría destruido el dataset completo (0 registros). "
+                    "Se preservaron todas las filas originales y se imputaron los valores faltantes."
+                )
+                metodo_imputacion = "mediana"
+        else:
+            df_clean = candidato.copy()
+            bitacora["filas_eliminadas_por_nulos"] = int(filas_antes - len(df_clean))
 
     for col in df_clean.columns:
         nulos = int(df_clean[col].isnull().sum())
         if nulos > 0:
             if pd.api.types.is_numeric_dtype(df_clean[col]):
-                if metodo_imputacion in ("mediana", "median"):
+                if metodo_imputacion in ("mediana", "median"): 
                     val = df_clean[col].median()
-                elif metodo_imputacion in ("media", "mean"):
+                elif metodo_imputacion in ("media", "mean"): 
                     val = df_clean[col].mean()
                 else:
                     val = 0
@@ -185,10 +207,14 @@ def ejecutar_limpieza(df: pd.DataFrame, config: Dict[str, Any]) -> Tuple[pd.Data
                 df_clean[col] = df_clean[col].fillna(val)
                 bitacora["nulos_imputados"][col] = f"{nulos} imputados ({metodo_imputacion}: {val:.2f})"
             else:
-                # Categórico: moda o 'Desconocido'
-                moda = df_clean[col].mode().iloc[0] if not df_clean[col].mode().empty else "Desconocido"
-                df_clean[col] = df_clean[col].fillna(moda)
-                bitacora["nulos_imputados"][col] = f"{nulos} imputados (moda: '{moda}')"
+                # Categórico: si la tasa de nulos es muy alta (>50%), 'Sin registro' es más representativo
+                tasa_nulos = nulos / max(1, len(df_clean))
+                if tasa_nulos > 0.50 or df_clean[col].mode().empty:
+                    val_cat = "Sin registro"
+                else:
+                    val_cat = str(df_clean[col].mode().iloc[0])
+                df_clean[col] = df_clean[col].fillna(val_cat)
+                bitacora["nulos_imputados"][col] = f"{nulos} imputados ('{val_cat}')"
 
     # 4. Manejo de Outliers (Recorte IQR - Winsorization)
     if config.get("manejo_outliers", True):
@@ -209,5 +235,20 @@ def ejecutar_limpieza(df: pd.DataFrame, config: Dict[str, Any]) -> Tuple[pd.Data
                 if outliers > 0:
                     df_clean[col] = df_clean[col].clip(lower=lim_inf, upper=lim_sup)
                     bitacora["outliers_tratados"] += int(outliers)
+
+    # 5. Ordenamiento Cronológico Inteligente
+    if config.get("ordenar_cronologicamente", False):
+        cols_fecha = [
+            c for c in df_clean.columns 
+            if any(term in str(c).lower() for term in ["date", "fecha", "ingreso", "alta", "onset", "confirmed"])
+            or pd.api.types.is_datetime64_any_dtype(df_clean[c])
+        ]
+        if cols_fecha:
+            col_orden = cols_fecha[0]
+            serie_dt = pd.to_datetime(df_clean[col_orden], errors="coerce")
+            if serie_dt.notna().any():
+                df_clean["_temp_sort_dt"] = serie_dt
+                df_clean = df_clean.sort_values(by="_temp_sort_dt", na_position="last").drop(columns=["_temp_sort_dt"]).reset_index(drop=True)
+                bitacora["ordenamiento_aplicado"] = f"Filas ordenadas cronológicamente por '{col_orden}' (ascendente)"
 
     return df_clean, bitacora

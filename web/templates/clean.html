@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Limpieza & Diagnóstico — OrangeWeb{% endblock %}
+{% block title %}Limpieza & Diagnóstico — Mython App{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
   <div>
-    <h3 class="fw-bold mb-1"><i class="bi bi-magic text-warning"></i> 2. Limpieza Asistida y Diagnóstico (RF2)</h3>
+    <h3 class="fw-bold mb-1"><i class="bi bi-magic text-primary"></i> 2. Limpieza Asistida y Diagnóstico (RF2)</h3>
     <p class="text-muted mb-0 small">Escanea la calidad del dataset activo y ejecuta el pipeline de preprocesamiento asistido.</p>
   </div>
   <a href="/tree" class="btn btn-orange">
@@ -13,36 +13,41 @@
   </a>
 </div>
 
+<!-- Banner del Dataset Activo -->
+{% include "components/dataset_banner.html" %}
+
 <!-- Tarjetas KPI de Diagnóstico Automático -->
 <div class="row g-3 mb-4">
-  <div class="col-md-3">
+  <div class="col-6 col-md-3">
     <div class="kpi-card">
-      <div class="kpi-value text-primary">{{ diagnostic.total_filas }}</div>
-      <div class="kpi-label"><i class="bi bi-database"></i> Total de Filas</div>
+      <div class="kpi-value {% if diagnostic.total_filas == 0 %}text-danger{% else %}text-primary{% endif %}">
+        {{ "{:,}".format(diagnostic.total_filas|default(0)) }}
+      </div>
+      <div class="kpi-label"><i class="bi bi-database me-1"></i> Total de Filas</div>
     </div>
   </div>
-  <div class="col-md-3">
+  <div class="col-6 col-md-3">
     <div class="kpi-card">
       <div class="kpi-value {% if diagnostic.total_nulos > 0 %}text-danger{% else %}text-success{% endif %}">
-        {{ diagnostic.total_nulos }}
+        {{ "{:,}".format(diagnostic.total_nulos|default(0)) }}
       </div>
-      <div class="kpi-label"><i class="bi bi-exclamation-triangle"></i> Valores Nulos</div>
+      <div class="kpi-label"><i class="bi bi-exclamation-triangle me-1"></i> Valores Nulos</div>
     </div>
   </div>
-  <div class="col-md-3">
+  <div class="col-6 col-md-3">
     <div class="kpi-card">
       <div class="kpi-value {% if diagnostic.filas_duplicadas > 0 %}text-warning{% else %}text-success{% endif %}">
-        {{ diagnostic.filas_duplicadas }}
+        {{ diagnostic.filas_duplicadas|default(0) }}
       </div>
-      <div class="kpi-label"><i class="bi bi-intersect"></i> Filas Duplicadas</div>
+      <div class="kpi-label"><i class="bi bi-intersect me-1"></i> Filas Duplicadas</div>
     </div>
   </div>
-  <div class="col-md-3">
+  <div class="col-6 col-md-3">
     <div class="kpi-card">
       <div class="kpi-value" style="color: #8b5cf6;">
-        {{ diagnostic.outliers_estimados }}
+        {{ diagnostic.outliers_estimados|default(0) }}
       </div>
-      <div class="kpi-label"><i class="bi bi-distribute-vertical"></i> Outliers (IQR)</div>
+      <div class="kpi-label"><i class="bi bi-distribute-vertical me-1"></i> Outliers (IQR)</div>
     </div>
   </div>
 </div>
@@ -50,25 +55,27 @@
 <div class="row">
   <!-- Formulario de Configuración de Limpieza Multiple-Choice -->
   <div class="col-lg-6 mb-4">
-    <div class="card-custom">
+    <div class="card-custom h-100">
       <div class="card-title-custom">
-        <span><i class="bi bi-sliders text-warning"></i> Operaciones de Limpieza Asistida</span>
-        <span class="badge bg-warning-subtle text-dark border">Multiple-Choice</span>
+        <span><i class="bi bi-sliders text-primary"></i> Operaciones de Limpieza Asistida</span>
+        <span class="badge bg-primary-subtle text-primary border">RF2 Modular</span>
       </div>
 
       <form action="/clean" method="post">
         <!-- 1. Normalización -->
         <div class="form-check form-switch p-3 bg-light rounded-3 mb-3 border">
-          <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="normCols" name="normalize_columns" checked>
+          <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="normCols" name="normalize_columns" 
+                 {% if last_config.normalize_columns or last_config is not defined %}checked{% endif %}>
           <label class="form-check-label fw-bold" for="normCols">
             <i class="bi bi-fonts text-primary me-1"></i> Normalizar nombres de columnas
-            <span class="d-block small text-muted fw-normal">Estandariza a minúsculas, formato snake_case y remueve tildes especiales.</span>
+            <span class="d-block small text-muted fw-normal">Estandariza a minúsculas, formato snake_case y remueve tildes y caracteres especiales.</span>
           </label>
         </div>
 
         <!-- 2. Duplicados -->
         <div class="form-check form-switch p-3 bg-light rounded-3 mb-3 border">
-          <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="dropDups" name="drop_duplicates" checked>
+          <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="dropDups" name="drop_duplicates"
+                 {% if last_config.drop_duplicates or last_config is not defined %}checked{% endif %}>
           <label class="form-check-label fw-bold" for="dropDups">
             <i class="bi bi-trash3 text-danger me-1"></i> Eliminar filas duplicadas exactas
             <span class="d-block small text-muted fw-normal">Descarta redundancias que sesguen el entrenamiento predictivo.</span>
@@ -79,23 +86,42 @@
         <div class="p-3 bg-light rounded-3 mb-3 border">
           <label class="form-label fw-bold mb-1"><i class="bi bi-patch-question text-info me-1"></i> Estrategia de Imputación de Nulos</label>
           <select class="form-select form-select-sm mb-2" name="impute_strategy">
-            <option value="median" selected>Imputar por Mediana (Robusta ante outliers)</option>
-            <option value="mean">Imputar por Media Aritmética</option>
-            <option value="drop">Eliminar filas con valores nulos</option>
+            <option value="median" {% if last_config.impute_strategy == 'median' or not last_config %}selected{% endif %}>
+              Imputar por Mediana (Robusta ante outliers y variables numéricas)
+            </option>
+            <option value="mean" {% if last_config.impute_strategy == 'mean' %}selected{% endif %}>
+              Imputar por Media Aritmética
+            </option>
+            <option value="drop" {% if last_config.impute_strategy == 'drop' %}selected{% endif %}>
+              Eliminar filas con valores nulos (con salvaguarda preventiva)
+            </option>
           </select>
-          <span class="small text-muted d-block"><i class="bi bi-info-circle me-1"></i>Las variables categóricas se imputan por su Moda o 'Desconocido'.</span>
+          <span class="small text-muted d-block">
+            <i class="bi bi-shield-check text-success me-1"></i>Las variables categóricas o con alta dispersión se imputan de forma segura por su Moda o 'Sin registro'.
+          </span>
         </div>
 
         <!-- 4. Manejo de Outliers -->
         <div class="form-check form-switch p-3 bg-light rounded-3 mb-3 border">
-          <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="iqrOutliers" name="outlier_method" checked>
+          <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="iqrOutliers" name="outlier_method"
+                 {% if last_config.outlier_method or last_config is not defined %}checked{% endif %}>
           <label class="form-check-label fw-bold" for="iqrOutliers">
             <i class="bi bi-rulers text-success me-1"></i> Tratamiento de Outliers (IQR Winsorization)
-            <span class="d-block small text-muted fw-normal">Ajusta valores en colas extremas $[Q_1 - 1.5 \times IQR, Q_3 + 1.5 \times IQR]$ sin descartar registros.</span>
+            <span class="d-block small text-muted fw-normal">Ajusta valores en colas extremas $[Q_1 - 1.5 \times IQR, Q_3 + 1.5 \times IQR]$ sin descartar registros válidos.</span>
           </label>
         </div>
 
-        <button type="submit" class="btn btn-orange w-100 py-2 fw-bold">
+        <!-- 5. Ordenamiento Cronológico Inteligente -->
+        <div class="form-check form-switch p-3 bg-light rounded-3 mb-3 border">
+          <input class="form-check-input ms-0 me-3" type="checkbox" role="switch" id="orderChrono" name="order_chronological"
+                 {% if last_config.order_chronological %}checked{% endif %}>
+          <label class="form-check-label fw-bold" for="orderChrono">
+            <i class="bi bi-calendar-range text-primary me-1"></i> Ordenamiento Cronológico Inteligente
+            <span class="d-block small text-muted fw-normal">Ordena automáticamente las filas por la fecha principal de registro (si existen variables temporales).</span>
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn-orange w-100 py-2 fw-bold shadow-sm">
           <i class="bi bi-play-circle-fill me-1"></i> Ejecutar Limpieza en Dataset Activo
         </button>
       </form>
@@ -104,7 +130,7 @@
 
   <!-- Bitácora de Auditoría de Limpieza Realizada -->
   <div class="col-lg-6 mb-4">
-    <div class="card-custom">
+    <div class="card-custom h-100">
       <div class="card-title-custom">
         <span><i class="bi bi-clipboard-check text-success"></i> Bitácora de Auditoría (RF2)</span>
         {% if cleaning_executed %}
@@ -115,13 +141,28 @@
       </div>
 
       {% if cleaning_executed %}
+      <!-- Advertencias preventivas -->
+      {% if audit_log.advertencias and audit_log.advertencias|length > 0 %}
+      <div class="alert alert-warning d-flex align-items-start gap-2 mb-3">
+        <i class="bi bi-shield-exclamation fs-4 text-warning flex-shrink-0"></i>
+        <div>
+          <strong>Aviso de Salvaguarda Preventiva:</strong>
+          <ul class="mb-0 ps-3 mt-1 small">
+            {% for adv in audit_log.advertencias %}
+            <li>{{ adv }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% else %}
       <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
-        <i class="bi bi-check-circle-fill fs-4"></i>
+        <i class="bi bi-check-circle-fill fs-4 text-success flex-shrink-0"></i>
         <div>
           <strong>¡Pipeline de limpieza ejecutado exitosamente!</strong>
           <div class="small">El dataset limpio se encuentra persistido en memoria y listo para modelado.</div>
         </div>
       </div>
+      {% endif %}
 
       <div class="table-responsive">
         <table class="table table-sm table-bordered small mb-3">
@@ -130,6 +171,12 @@
               <th class="bg-light w-50"><i class="bi bi-trash me-1 text-danger"></i> Duplicados Eliminados:</th>
               <td><span class="badge bg-danger">{{ audit_log.duplicates_removed }} filas</span></td>
             </tr>
+            {% if audit_log.rows_dropped_nulls > 0 %}
+            <tr>
+              <th class="bg-light"><i class="bi bi-person-x me-1 text-danger"></i> Filas Descartadas por Nulos:</th>
+              <td><span class="badge bg-danger">{{ audit_log.rows_dropped_nulls }} filas</span></td>
+            </tr>
+            {% endif %}
             <tr>
               <th class="bg-light"><i class="bi bi-fonts me-1 text-primary"></i> Columnas Normalizadas:</th>
               <td><code>{{ audit_log.columns_normalized|length }} columnas</code> estandarizadas</td>
@@ -138,11 +185,17 @@
               <th class="bg-light"><i class="bi bi-rulers me-1 text-purple" style="color:#8b5cf6;"></i> Outliers Tratados (IQR):</th>
               <td><span class="badge" style="background:#8b5cf6;">{{ audit_log.outliers_clipped }} valores</span> ajustados a límites válidos</td>
             </tr>
+            {% if audit_log.chronological_ordered %}
+            <tr>
+              <th class="bg-light"><i class="bi bi-calendar-check me-1 text-primary"></i> Ordenamiento Cronológico:</th>
+              <td><span class="badge bg-primary text-white"><i class="bi bi-sort-down me-1"></i>Aplicado</span> {{ audit_log.chronological_ordered }}</td>
+            </tr>
+            {% endif %}
             <tr>
               <th class="bg-light"><i class="bi bi-patch-question me-1 text-info"></i> Nulos Imputados:</th>
               <td>
                 {% if audit_log.nulls_imputed %}
-                <ul class="mb-0 ps-3">
+                <ul class="mb-0 ps-3" style="max-height: 140px; overflow-y: auto;">
                   {% for col, desc in audit_log.nulls_imputed.items() %}
                   <li><strong>{{ col }}:</strong> {{ desc }}</li>
                   {% endfor %}
@@ -163,12 +216,119 @@
       </div>
       {% endif %}
 
-      <div class="d-flex justify-content-end">
+      <div class="d-flex justify-content-between align-items-center mt-auto pt-2">
+        {% if is_cleaned %}
+        <form action="/clean/restore" method="post" class="d-inline">
+          <button type="submit" class="btn btn-outline-warning btn-sm" onclick="return confirm('¿Descartar la limpieza y restaurar el dataset original?');">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Deshacer Limpieza
+          </button>
+        </form>
+        {% else %}
+        <span></span>
+        {% endif %}
         <a href="/tree" class="btn btn-orange">
           Continuar a Árbol de Decisión <i class="bi bi-arrow-right"></i>
         </a>
       </div>
     </div>
   </div>
+</div>
+
+<!-- 3. Previsualización Inmediata del Dataset Limpio y Normalizado -->
+<div class="card-custom mb-4">
+  <div class="card-title-custom">
+    <div class="d-flex align-items-center gap-2">
+      <span><i class="bi bi-table text-primary"></i> 3. Vista Previa de Datos del Dataset</span>
+      {% if is_cleaned %}
+      <span class="badge bg-success-subtle text-success border border-success">
+        <i class="bi bi-check-circle-fill me-1"></i>Datos Normalizados y Limpios
+      </span>
+      {% else %}
+      <span class="badge bg-secondary-subtle text-secondary border border-secondary">
+        <i class="bi bi-file-earmark me-1"></i>Datos Crudos Originales (Sin Limpiar)
+      </span>
+      {% endif %}
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <a href="/clean/download" class="btn btn-sm btn-outline-success" title="Descargar este dataset como archivo CSV">
+        <i class="bi bi-download me-1"></i> Descargar CSV Limpio
+      </a>
+      {% if is_cleaned %}
+      <form action="/clean/restore" method="post" class="d-inline">
+        <button type="submit" class="btn btn-sm btn-outline-warning" title="Restaurar a datos originales sin modificaciones" onclick="return confirm('¿Deseas restaurar los datos originales?');">
+          <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar Original
+        </button>
+      </form>
+      {% endif %}
+      <a href="/tree" class="btn btn-sm btn-orange">
+        Modelar con estos datos <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+
+  {% if preview_data and preview_data|length > 0 %}
+  <div class="d-flex align-items-center justify-content-between mb-2 small text-muted">
+    <div>
+      Mostrando las primeras <strong>{{ preview_data|length }}</strong> filas de un total de 
+      <strong class="text-primary">{{ "{:,}".format(active_dataset.row_count if active_dataset else 0) }}</strong> registros en memoria.
+    </div>
+    <div>
+      <i class="bi bi-info-circle me-1"></i> Encabezados con tipo semántico inferido.
+    </div>
+  </div>
+
+  <div class="table-responsive border rounded-3 bg-white" style="max-height: 440px; overflow-y: auto;">
+    <table class="table table-sm table-hover table-striped align-middle mb-0 small">
+      <thead class="table-light sticky-top">
+        <tr>
+          <th class="text-center" style="width: 50px;">#</th>
+          {% for col in preview_columns %}
+          <th>
+            <div class="fw-bold">{{ col }}</div>
+            {% set info = column_types.get(col) %}
+            {% if info %}
+            <span class="badge {{ info.badge }} py-0 px-1" style="font-size: 0.65rem;">{{ info.tipo }}</span>
+            {% endif %}
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in preview_data %}
+        <tr>
+          <td class="text-center text-muted fw-bold">{{ loop.index }}</td>
+          {% for col in preview_columns %}
+          <td>
+            {% set val = row[col] %}
+            {% if val is none or val == "" %}
+              <span class="badge bg-light text-muted border">null</span>
+            {% else %}
+              {{ val }}
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="p-5 text-center text-muted">
+    <i class="bi bi-database-x fs-1 text-danger d-block mb-2"></i>
+    <h5 class="fw-bold text-danger">No hay registros disponibles para previsualizar</h5>
+    <p class="small mb-3">El dataset actual se encuentra vacío o no fue posible cargar las filas.</p>
+    <div class="d-flex justify-content-center gap-2">
+      <form action="/clean/restore" method="post" class="d-inline">
+        <button type="submit" class="btn btn-sm btn-warning">
+          <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar Dataset Original
+        </button>
+      </form>
+      <a href="/upload" class="btn btn-sm btn-primary">
+        <i class="bi bi-cloud-arrow-up me-1"></i> Cargar Nuevo CSV
+      </a>
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

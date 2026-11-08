@@ -40,6 +40,9 @@ async def tree_page(request: Request):
 
     target_defecto, features_defecto = _seleccionar_target_y_features_defecto(columns)
 
+    if df is None or df.empty:
+        ctx["error_arbol"] = "El dataset activo no contiene registros (0 filas). No es posible entrenar un árbol de decisión sin datos. Usa el botón 'Restaurar Dataset Original' o carga un nuevo archivo CSV."
+
     model_result = state_manager.get_last_tree_model()
     if model_result is None and df is not None and not df.empty and target_defecto and features_defecto:
         try:
@@ -80,6 +83,10 @@ async def handle_tree(
     active = state_manager.get_active_dataset()
     df = active.get("df")
     columns = active.get("columns", [])
+
+    if df is None or df.empty:
+        state_manager.set_flash_error("El dataset activo no contiene registros (0 filas). Por favor restaura el dataset original o carga un nuevo archivo CSV.")
+        return RedirectResponse(url="/tree", status_code=303)
 
     # Si no se seleccionó ninguna feature, seleccionar todas las demás por defecto
     if not features:

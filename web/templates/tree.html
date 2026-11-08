@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Árbol de Decisión — OrangeWeb{% endblock %}
+{% block title %}Árbol de Decisión — Mython App{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -12,6 +12,9 @@
     Ir a Reglas de Asociación <i class="bi bi-arrow-right"></i>
   </a>
 </div>
+
+<!-- Banner de Contexto de Dataset Activo -->
+{% include "components/dataset_banner.html" %}
 
 <!-- Banner Informativo del Motor RF3 -->
 <div class="card-custom bg-primary-subtle border-primary-subtle p-3 mb-4">

@@ -46,11 +46,14 @@ class DatasetStateManager:
             "filesize_mb": 0.14,
             "columns": list(self.demo_df.columns),
             "df": self.demo_df,
+            "raw_df": self.demo_df.copy(),
+            "is_cleaned": False,
             "column_types": {str(c): inferir_tipo_columna(self.demo_df[c]) for c in self.demo_df.columns}
         }
 
         self.flash_messages = {"success": None, "error": None}
         self.last_clean_audit: Optional[Dict[str, Any]] = None
+        self.last_clean_config: Optional[Dict[str, Any]] = None
         self.last_tree_model: Optional[Dict[str, Any]] = None
 
     def get_active_dataset(self) -> Dict[str, Any]:
@@ -65,6 +68,8 @@ class DatasetStateManager:
         self.current_dataset = {
             **metadata,
             "df": df,
+            "raw_df": df.copy() if df is not None else None,
+            "is_cleaned": False,
             "columns": list(df.columns) if df is not None else metadata.get("columns", []),
             "row_count": len(df) if df is not None else metadata.get("row_count", 0),
             "col_count": len(df.columns) if df is not None else metadata.get("col_count", 0),
@@ -72,16 +77,50 @@ class DatasetStateManager:
         }
         # Limpiar auditorías anteriores para evitar inconsistencias
         self.last_clean_audit = None
+        self.last_clean_config = None
         self.last_tree_model = None
 
-    def update_cleaned_dataset(self, df_clean: pd.DataFrame, audit_log: Dict[str, Any]):
+    def update_cleaned_dataset(self, df_clean: pd.DataFrame, audit_log: Dict[str, Any], config: Optional[Dict[str, Any]] = None):
         """Persiste el resultado de una operación de limpieza asistida (RF2)."""
+        if df_clean is None or len(df_clean) == 0:
+            raise ValueError("La operación de limpieza resultó en un dataset vacío (0 filas). Operación abortada para evitar pérdida de datos.")
+            
         self.current_dataset["df"] = df_clean
         self.current_dataset["columns"] = list(df_clean.columns)
         self.current_dataset["row_count"] = len(df_clean)
         self.current_dataset["col_count"] = len(df_clean.columns)
         self.current_dataset["column_types"] = {str(c): inferir_tipo_columna(df_clean[c]) for c in df_clean.columns}
+        self.current_dataset["is_cleaned"] = True
         self.last_clean_audit = audit_log
+        if config:
+            self.last_clean_config = config
+        self.last_tree_model = None
+
+    def restore_raw_dataset(self) -> bool:
+        """Restaura el dataset a su versión cruda original antes de la limpieza."""
+        raw = self.current_dataset.get("raw_df")
+        if raw is None or raw.empty:
+            return False
+        self.current_dataset["df"] = raw.copy()
+        self.current_dataset["columns"] = list(raw.columns)
+        self.current_dataset["row_count"] = len(raw)
+        self.current_dataset["col_count"] = len(raw.columns)
+        self.current_dataset["column_types"] = {str(c): inferir_tipo_columna(raw[c]) for c in raw.columns}
+        self.current_dataset["is_cleaned"] = False
+        self.last_clean_audit = None
+        self.last_clean_config = None
+        self.last_tree_model = None
+        return True
+
+    def get_last_clean_config(self) -> Dict[str, Any]:
+        """Retorna la última configuración de limpieza ejecutada o defaults."""
+        return self.last_clean_config or {
+            "normalize_columns": True,
+            "drop_duplicates": True,
+            "impute_strategy": "median",
+            "outlier_method": True,
+            "order_chronological": False
+        }
 
     def get_last_clean_audit(self) -> Optional[Dict[str, Any]]:
         """Retorna la bitácora del último pipeline de limpieza ejecutado."""

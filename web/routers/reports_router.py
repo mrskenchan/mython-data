@@ -59,5 +59,5 @@ async def reports_page(request: Request, download: str = None):
 
     response = templates.TemplateResponse(request=request, name="report.html", context=ctx)
     if download == "html":
-        response.headers["Content-Disposition"] = 'attachment; filename="informe_ejecutivo_orangeweb.html"'
+        response.headers["Content-Disposition"] = 'attachment; filename="informe_ejecutivo_mython.html"'
     return response

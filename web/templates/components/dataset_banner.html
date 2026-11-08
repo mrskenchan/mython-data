@@ -1,0 +1,61 @@
+<!-- Banner de Contexto de Dataset Activo -->
+<div class="card-custom mb-4 p-3 border shadow-sm {% if active_dataset and active_dataset.row_count == 0 %}border-danger bg-danger-subtle{% else %}bg-light-subtle border-secondary-subtle{% endif %}">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+    <!-- Info del Dataset -->
+    <div class="d-flex align-items-center gap-3">
+      <div class="{% if active_dataset and active_dataset.row_count == 0 %}bg-danger text-white{% elif active_dataset and active_dataset.is_cleaned %}bg-success text-white{% else %}bg-primary text-white{% endif %} p-2 px-3 rounded-3 fs-4 shadow-sm">
+        <i class="bi {% if active_dataset and active_dataset.row_count == 0 %}bi-exclamation-octagon-fill{% elif active_dataset and active_dataset.is_cleaned %}bi-stars{% else %}bi-file-earmark-spreadsheet-fill{% endif %}"></i>
+      </div>
+      <div>
+        <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+          <span class="text-muted small fw-semibold text-uppercase tracking-wider">Dataset en Uso:</span>
+          <h5 class="fw-bold mb-0 text-dark font-monospace">{{ active_dataset.filename if active_dataset else 'clientes_churn.csv' }}</h5>
+          
+          {% if active_dataset and active_dataset.row_count == 0 %}
+            <span class="badge bg-danger text-white"><i class="bi bi-exclamation-triangle-fill me-1"></i>¡0 FILAS / VACÍO!</span>
+          {% elif active_dataset and active_dataset.is_cleaned %}
+            <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>Limpio & Normalizado (RF2)</span>
+          {% else %}
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary"><i class="bi bi-file-earmark me-1"></i>Datos Crudos (Sin Limpiar)</span>
+          {% endif %}
+        </div>
+        
+        <div class="text-muted small d-flex align-items-center gap-3 flex-wrap">
+          <span><i class="bi bi-database me-1 text-primary"></i><strong>{{ "{:,}".format(active_dataset.row_count if active_dataset and active_dataset.row_count is not none else 0) }}</strong> registros</span>
+          <span><i class="bi bi-layout-three-columns me-1 text-info"></i><strong>{{ active_dataset.col_count if active_dataset and active_dataset.col_count is not none else 0 }}</strong> columnas</span>
+          {% if active_dataset and active_dataset.encoding %}
+            <span><i class="bi bi-file-code me-1 text-secondary"></i>{{ active_dataset.encoding|upper }} ({{ active_dataset.separator }})</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      {% if active_dataset and active_dataset.row_count == 0 %}
+        <form action="/clean/restore" method="post" class="d-inline">
+          <button type="submit" class="btn btn-sm btn-danger fw-bold shadow-sm">
+            <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar Dataset Original
+          </button>
+        </form>
+        <a href="/upload" class="btn btn-sm btn-outline-danger">
+          <i class="bi bi-cloud-arrow-up me-1"></i> Cargar Otro Archivo
+        </a>
+      {% else %}
+        {% if active_dataset and active_dataset.is_cleaned %}
+          <form action="/clean/restore" method="post" class="d-inline">
+            <button type="submit" class="btn btn-sm btn-outline-warning" title="Descartar transformaciones de limpieza y volver al dataset original" onclick="return confirm('¿Deseas restaurar el dataset original sin las modificaciones de limpieza?');">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Restaurar Original
+            </button>
+          </form>
+        {% endif %}
+        <a href="/clean" class="btn btn-sm btn-outline-primary" title="Ir a la pantalla de limpieza y preprocesamiento">
+          <i class="bi bi-magic me-1"></i> Limpieza (RF2)
+        </a>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalDatasets" title="Cambiar a otro dataset del catálogo">
+          <i class="bi bi-folder2-open me-1"></i> Catálogo
+        </button>
+      {% endif %}
+    </div>
+  </div>
+</div>

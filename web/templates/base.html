@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}OrangeWeb — Minería de Datos{% endblock %}</title>
+  <title>{% block title %}Mython App — Minería de Datos{% endblock %}</title>
   
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,6 +18,7 @@
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
   
   <!-- Estilos Personalizados -->
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
@@ -25,9 +26,9 @@
   <!-- Barra Lateral (Sidebar) Estilo Orange -->
   <nav class="sidebar">
     <a href="/upload" class="sidebar-brand">
-      <i class="bi bi-diagram-3-fill text-warning"></i>
-      <span>OrangeWeb</span>
-      <span class="brand-badge">Data Mining</span>
+      <img src="/static/favicon.svg" alt="Python Logo" width="26" height="26" class="me-2">
+      <span class="fw-bold tracking-tight">Mython App</span>
+      <span class="brand-badge ms-auto">v1.0</span>
     </a>
 
     <ul class="sidebar-menu">
@@ -70,7 +71,7 @@
     </ul>
 
     <div class="sidebar-footer">
-      <div><strong>FastAPI + Python 3.11</strong></div>
+      <div><strong>Mython App &bull; Python 3.11</strong></div>
       <div class="small text-muted">DirectAdmin / aerys.cl</div>
     </div>
   </nav>
@@ -80,12 +81,21 @@
     <!-- Navbar Superior -->
     <header class="top-navbar">
       <div class="d-flex align-items-center gap-3">
-        <div class="dataset-pill {% if not active_dataset %}empty{% endif %}">
-          <i class="bi bi-file-earmark-spreadsheet-fill"></i>
+        <div class="dataset-pill {% if not active_dataset %}empty{% elif active_dataset.row_count == 0 %}border-danger bg-danger-subtle{% endif %}">
+          <i class="bi bi-file-earmark-spreadsheet-fill {% if active_dataset and active_dataset.row_count == 0 %}text-danger{% else %}text-warning{% endif %}"></i>
           <span>Dataset: <strong>{{ active_dataset.filename if active_dataset else 'clientes_churn.csv (Demo)' }}</strong></span>
           {% if active_dataset %}
-            <span class="badge bg-secondary">{{ active_dataset.row_count if active_dataset.row_count else (active_dataset.rows if active_dataset.rows else 0) }} filas</span>
+            {% if active_dataset.row_count == 0 %}
+              <span class="badge bg-danger text-white"><i class="bi bi-exclamation-triangle-fill"></i> 0 filas</span>
+            {% else %}
+              <span class="badge bg-primary">{{ "{:,}".format(active_dataset.row_count) }} filas</span>
+            {% endif %}
             <span class="badge bg-light text-dark border">{{ active_dataset.columns|length }} cols</span>
+            {% if active_dataset.is_cleaned %}
+              <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check2"></i> Limpio</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-muted border"><i class="bi bi-file-earmark"></i> Crudo</span>
+            {% endif %}
           {% else %}
             <span class="badge bg-warning text-dark">Demo</span>
           {% endif %}
@@ -132,50 +142,71 @@
     </main>
   </div>
 
-  <!-- Modal: Mis Datasets Guardados -->
+  <!-- Modal: Catálogo de Datasets Guardados (Contenedor Estático con Paginación Progresiva) -->
   <div class="modal fade" id="modalDatasets" tabindex="-1" aria-labelledby="modalDatasetsLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header bg-light">
-          <h5 class="modal-title fw-bold" id="modalDatasetsLabel">
-            <i class="bi bi-folder-check text-primary me-1"></i> Catálogo de Datasets Guardados
-          </h5>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content shadow-lg border-0">
+        <!-- Cabecera del Modal -->
+        <div class="modal-header bg-light py-2 px-3 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-folder-check text-primary fs-5"></i>
+            <h6 class="modal-title fw-bold mb-0" id="modalDatasetsLabel">Catálogo de Datasets Guardados</h6>
+            <span class="badge bg-primary-subtle text-primary border" id="catalogHeaderBadge">{{ dataset_catalog|length if dataset_catalog else 0 }} guardados</span>
+          </div>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
         </div>
+
+        <!-- Barra de Búsqueda Rápida y Contador -->
+        <div class="p-2 bg-light border-bottom d-flex align-items-center justify-content-between gap-2">
+          <div class="input-group input-group-sm w-75">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" id="catalogSearchInput" class="form-control border-start-0" placeholder="Buscar por nombre de archivo...">
+          </div>
+          <span class="badge bg-white text-muted border text-nowrap py-1 px-2" id="catalogCountBadge" style="font-size: 0.75rem;">
+            10 / {{ dataset_catalog|length if dataset_catalog else 0 }}
+          </span>
+        </div>
+
+        <!-- Cuerpo del Modal: Contenedor Estático de Altura Fija con Scroll Interno -->
         <div class="modal-body p-0">
           {% if dataset_catalog and dataset_catalog|length > 0 %}
-          <div class="table-responsive">
-            <table class="table table-hover align-middle small mb-0">
-              <thead class="table-light">
+          <div class="table-responsive" id="catalogTableContainer" style="max-height: 430px; overflow-y: auto;">
+            <table class="table table-hover table-striped align-middle small mb-0">
+              <thead class="table-light sticky-top shadow-sm" style="z-index: 5;">
                 <tr>
-                  <th>Archivo</th>
-                  <th>Registros</th>
-                  <th>Columnas</th>
+                  <th class="ps-3">Archivo</th>
+                  <th class="text-center">Registros</th>
+                  <th class="text-center">Cols</th>
                   <th>Tamaño</th>
-                  <th>Fecha de Ingesta</th>
-                  <th class="text-end">Acción</th>
+                  <th>Fecha Ingesta</th>
+                  <th class="text-end pe-3">Acción</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="catalogTableBody">
                 {% for d in dataset_catalog %}
-                <tr {% if active_dataset and active_dataset.id == d.id %}class="table-active"{% endif %}>
-                  <td>
-                    <strong>{{ d.filename }}</strong>
-                    {% if active_dataset and active_dataset.id == d.id %}
-                    <span class="badge bg-success ms-1">Activo</span>
-                    {% endif %}
+                <tr class="catalog-item-row {% if active_dataset and active_dataset.id == d.id %}table-active{% endif %}" 
+                    data-filename="{{ d.filename|lower }}"
+                    {% if loop.index > 10 %}style="display: none;"{% endif %}>
+                  <td class="ps-3">
+                    <div class="d-flex align-items-center gap-1">
+                      <i class="bi bi-file-earmark-spreadsheet text-primary"></i>
+                      <strong class="text-dark">{{ d.filename }}</strong>
+                      {% if active_dataset and active_dataset.id == d.id %}
+                      <span class="badge bg-success ms-1" style="font-size: 0.65rem;"><i class="bi bi-check2"></i> Activo</span>
+                      {% endif %}
+                    </div>
                   </td>
-                  <td>{{ d.row_count }}</td>
-                  <td>{{ d.col_count }}</td>
-                  <td>{{ d.filesize_kb }} KB</td>
-                  <td><span class="text-muted">{{ d.created_at }}</span></td>
-                  <td class="text-end">
+                  <td class="text-center font-monospace">{{ "{:,}".format(d.row_count|default(0)) }}</td>
+                  <td class="text-center font-monospace">{{ d.col_count|default(0) }}</td>
+                  <td><span class="badge bg-light text-dark border">{{ d.filesize_kb }} KB</span></td>
+                  <td><span class="text-muted small">{{ d.created_at }}</span></td>
+                  <td class="text-end pe-3 text-nowrap">
                     <form action="/datasets/select/{{ d.id }}" method="post" class="d-inline">
-                      <button type="submit" class="btn btn-xs btn-outline-primary py-0 px-2" title="Cargar como activo">
+                      <button type="submit" class="btn btn-xs btn-outline-primary py-0 px-2" title="Cargar como dataset activo">
                         <i class="bi bi-check2"></i> Activar
                       </button>
                     </form>
-                    <a href="/datasets/delete/{{ d.id }}" class="btn btn-xs btn-outline-danger py-0 px-2 ms-1" onclick="return confirm('¿Seguro que deseas eliminar este dataset del almacenamiento local?');" title="Eliminar">
+                    <a href="/datasets/delete/{{ d.id }}" class="btn btn-xs btn-outline-danger py-0 px-2 ms-1" onclick="return confirm('¿Seguro que deseas eliminar este dataset del almacenamiento local?');" title="Eliminar del catálogo">
                       <i class="bi bi-trash"></i>
                     </a>
                   </td>
@@ -184,19 +215,117 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Barra Inferior de Paginación Progresiva ("Ver más") -->
+          <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" id="catalogLoadMoreContainer">
+            <span class="small text-muted" id="catalogProgressText">
+              Mostrando <strong id="catalogVisibleSpan">10</strong> de {{ dataset_catalog|length }} datasets
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-primary py-1 px-3 fw-bold" id="btnCatalogLoadMore">
+              <i class="bi bi-chevron-double-down me-1"></i> Ver más (+20)
+            </button>
+          </div>
           {% else %}
-          <div class="p-4 text-center text-muted">
-            <i class="bi bi-cloud-slash fs-1 d-block mb-2"></i>
-            Aún no has subido datasets a tu almacenamiento persistente.
+          <div class="p-5 text-center text-muted">
+            <i class="bi bi-cloud-slash fs-1 d-block mb-2 text-secondary"></i>
+            <h6 class="fw-bold text-dark">Catálogo vacío</h6>
+            <p class="small mb-0">Aún no has subido datasets a tu almacenamiento persistente.</p>
           </div>
           {% endif %}
         </div>
-        <div class="modal-footer bg-light py-2">
+
+        <!-- Pie del Modal -->
+        <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+          <span class="small text-muted"><i class="bi bi-shield-check text-success me-1"></i> Almacenamiento local persistente</span>
           <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Script de Control del Catálogo (Paginación Progresiva 10 iniciales + 20 en 20) -->
+  <script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const rows = Array.from(document.querySelectorAll(".catalog-item-row"));
+    const btnLoadMore = document.getElementById("btnCatalogLoadMore");
+    const progressText = document.getElementById("catalogProgressText");
+    const visibleSpan = document.getElementById("catalogVisibleSpan");
+    const countBadge = document.getElementById("catalogCountBadge");
+    const searchInput = document.getElementById("catalogSearchInput");
+    const modalEl = document.getElementById("modalDatasets");
+
+    let currentVisible = 10;
+    const batchSize = 20;
+
+    function refreshCatalogDisplay() {
+      const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+      let matchedCount = 0;
+      let displayedCount = 0;
+
+      rows.forEach((row) => {
+        const name = row.getAttribute("data-filename") || "";
+        const isMatch = name.includes(query);
+
+        if (isMatch) {
+          matchedCount++;
+          if (matchedCount <= currentVisible) {
+            row.style.display = "";
+            displayedCount++;
+          } else {
+            row.style.display = "none";
+          }
+        } else {
+          row.style.display = "none";
+        }
+      });
+
+      if (visibleSpan) visibleSpan.textContent = displayedCount;
+      if (countBadge) countBadge.textContent = `${displayedCount} / ${matchedCount}`;
+      if (progressText) {
+        progressText.innerHTML = `Mostrando <strong>${displayedCount}</strong> de ${matchedCount} datasets`;
+      }
+
+      if (btnLoadMore) {
+        if (displayedCount >= matchedCount) {
+          btnLoadMore.style.display = "none";
+        } else {
+          btnLoadMore.style.display = "inline-flex";
+          const remaining = matchedCount - displayedCount;
+          const nextStep = Math.min(batchSize, remaining);
+          btnLoadMore.innerHTML = `<i class="bi bi-chevron-double-down me-1"></i> Ver más (+${nextStep})`;
+        }
+      }
+    }
+
+    if (btnLoadMore) {
+      btnLoadMore.addEventListener("click", function () {
+        currentVisible += batchSize;
+        refreshCatalogDisplay();
+        const container = document.getElementById("catalogTableContainer");
+        if (container) {
+          container.scrollBy({ top: 140, behavior: "smooth" });
+        }
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        currentVisible = 10;
+        refreshCatalogDisplay();
+      });
+    }
+
+    if (modalEl) {
+      modalEl.addEventListener("show.bs.modal", function () {
+        currentVisible = 10;
+        if (searchInput) searchInput.value = "";
+        refreshCatalogDisplay();
+      });
+    }
+
+    refreshCatalogDisplay();
+  });
+  </script>
 
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
